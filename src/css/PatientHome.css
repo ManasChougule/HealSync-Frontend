@@ -1,0 +1,245 @@
+body {
+    font-family: 'Arial', sans-serif;
+}
+
+.container {
+    margin-top: 50px;
+}
+
+.ui.header {
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.ui.segment {
+    padding: 30px;
+    animation: fadeIn 1s ease-in;
+}
+
+/* Doctor Card Animations */
+.doctor-card-enter {
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.doctor-card-enter-active {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 500ms, transform 500ms ease-in-out;
+}
+
+.doctor-card-exit {
+    opacity: 1;
+}
+
+.doctor-card-exit-active {
+    opacity: 0;
+    transition: opacity 500ms ease-in-out;
+}
+
+h3, h2 {
+    text-align: center;
+}
+
+/* Success and Warning Messages */
+.ui.success.message {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.ui.warning.message {
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    color: #856404;
+}
+
+/* Loading Animation */
+.dimmer {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.loader {
+    font-size: 2em;
+    color: #fff;
+}
+
+.ui.button {
+    background-color: #1b6d2f;
+    color: white;
+    font-weight: bold;
+}
+
+.ui.button:hover {
+    background-color: #155724;
+}
+
+/* Dropdown and Form Field Styles */
+.ui.dropdown, .ui.form .field {
+    font-size: 16px;
+}
+
+/* Red Button Styling */
+.ui.button.red {
+    background-color: #d9534f;
+}
+
+.ui.button.red:hover {
+    background-color: #c9302c;
+}
+
+.center-align {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Styling for List Items in Appointments Section */
+.ui.list .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+}
+
+.ui.list .item .description {
+    font-size: 14px;
+    color: #555;
+}
+
+.ui.list .item .header {
+    font-weight: bold;
+}
+
+/* Hover Effect for Doctor Cards */
+.ui.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* General Effect for Adding Animation to the Page */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInFromLeft {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Tab Content Animation */
+.tab-content-enter {
+    animation: slideInFromLeft 0.5s ease-out;
+}
+
+/* Form Animation */
+form {
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* General Card Hover Effect */
+.ui.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+/* Doctor Card Animations */
+.doctor-card-enter {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+.doctor-card-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 500ms, transform 500ms ease-out;
+}
+
+.doctor-card-exit {
+    opacity: 1;
+}
+
+.doctor-card-exit-active {
+    opacity: 0;
+    transition: opacity 500ms ease-out;
+}
+
+/* Hover Effect for List Items */
+.ui.list .item:hover {
+    background-color: #f4f4f4;
+    transition: background-color 0.3s ease;
+}
+
+/* Hover Effect for Delete Button */
+.ui.button:hover {
+    background-color: #e60000;
+    border-color: #e60000;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+/* Hover Effect for List Items */
+.ui.list .item:hover {
+    background-color: #f1f1f1;
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+}
+
+/* Hover Effect for Delete Button */
+.ui.button:hover {
+    background-color: #e60000 !important;
+    border-color: #e60000 !important;
+    color: white;
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+
+/* Appointment Card Animations */
+.appointment-card-enter {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.appointment-card-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.appointment-card-exit {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.appointment-card-exit-active {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Card Hover Animation */
+.ui.card:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+/* Hover Effect for Delete Button */
+.ui.button:hover {
+    background-color: #ff4d4d !important;
+    color: white !important;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    transform: scale(1.1);
+}

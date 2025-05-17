@@ -1,0 +1,22 @@
+export const specializationOptions = [
+    { key: 'orthopedics', text: 'Orthopedics', value: 'Orthopedics' },
+    { key: 'cardiology', text: 'Cardiology', value: 'Cardiology' },
+    { key: 'dermatology', text: 'Dermatology (Skin)', value: 'Dermatology (Skin)' },
+    { key: 'neurology', text: 'Neurology', value: 'Neurology' },
+    { key: 'pediatrics', text: 'Pediatrics', value: 'Pediatrics' },
+    { key: 'generalSurgery', text: 'General Surgery', value: 'General Surgery' },
+    { key: 'dentistry', text: 'Dentistry', value: 'Dentistry' },
+    { key: 'psychiatry', text: 'Psychiatry', value: 'Psychiatry' },
+    { key: 'ophthalmology', text: 'Ophthalmology (Eye Diseases)', value: 'Ophthalmology' },
+    { key: 'gynecology', text: 'Gynecology', value: 'Gynecology' },
+    { key: 'neurosurgery', text: 'Neurosurgery', value: 'Neurosurgery' },
+    { key: 'gastroenterology', text: 'Gastroenterology', value: 'Gastroenterology' },
+    { key: 'physiotherapy', text: 'Physiotherapy', value: 'Physiotherapy' },
+    { key: 'endocrinology', text: 'Endocrinology', value: 'Endocrinology' },
+    { key: 'infectiousDiseases', text: 'Infectious Diseases', value: 'Infectious Diseases' },
+    { key: 'otolaryngology', text: 'Ear, Nose, and Throat (ENT)', value: 'ENT' },
+    { key: 'urology', text: 'Urology', value: 'Urology' },
+    { key: 'hematology', text: 'Hematology', value: 'Hematology' },
+    { key: 'rheumatology', text: 'Rheumatology', value: 'Rheumatology' },
+    { key: 'pulmonology', text: 'Pulmonology (Lung Diseases)', value: 'Pulmonology' }
+];

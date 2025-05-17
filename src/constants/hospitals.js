@@ -1,0 +1,22 @@
+const hospitalOptions = [
+  { key: 'hospital1', text: 'All India Institute of Medical Sciences (AIIMS), Delhi', value: 'AIIMS Delhi' },
+  { key: 'hospital2', text: 'Fortis Memorial Research Institute, Mumbai', value: 'Fortis Memorial Research Institute' },
+  { key: 'hospital3', text: 'Apollo Hospitals, Mumbai', value: 'Apollo Hospitals Mumbai' },
+  { key: 'hospital4', text: 'Christian Medical College (CMC), Vellore', value: 'CMC Vellore' },
+  { key: 'hospital5', text: 'Medanta – The Medicity, Mumbai', value: 'Medanta The Medicity' },
+  { key: 'hospital6', text: 'Kokilaben Dhirubhai Ambani Hospital, Mumbai', value: 'Kokilaben Hospital' },
+  { key: 'hospital7', text: 'Victoria Hospital, Bengaluru', value: 'Victoria Hospital'  }, 
+  { key: 'hospital8', text: 'Sahyadri Hospital, Pune', value: 'Sahyadri Hospital' }, 
+  { key: 'hospital9', text: 'Jehangir Hospital, Pune', value: 'Jehangir Hospital' }, 
+  { key: 'hospital10', text: 'Ruby Hall Clinic, Pune', value: 'Ruby Hall Clinic' }, 
+  { key: 'hospital11', text: 'Ratna Memorial Hospital, Pune', value: 'Ratna Memorial Hospital' }, 
+  { key: 'hospital12', text: 'Lokmanya Hospital, Pune', value: 'Lokmanya Hospital' }, 
+  { key: 'hospital13', text: 'Ranka Hospital, Pune', value: 'Ranka Hospital' }, 
+  { key: 'hospital14', text: 'Noble Hospital, Pune', value: 'Noble Hospital' }, 
+  { key: 'hospital15', text: 'Deenanath Mangeshkar Hospital, Pune', value: 'Deenanath Mangeshkar Hospital' }, 
+  { key: 'hospital16', text: 'Starline Health Hospital, Mumbai', value: 'Starline Health Hospital' },
+  { key: 'hospital17', text: 'Sunset Horizon Clinic, Mumbai', value: 'Sunset Horizon Clinic' },
+  { key: 'hospital18', text: 'Crystal Waters Health Facility, Mumbai', value: 'Crystal Waters Health Facility' },
+  { key: 'hospital19', text: 'Westfield Medical Center, Mumbai', value: 'Westfield Medical Center' },
+  { key: 'hospital20', text: 'Jayadeva Institute of Cardiovascular Sciences & Research, Bengaluru', value: 'Jayadeva Institute'  }
+];
