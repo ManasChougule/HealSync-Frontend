@@ -78,12 +78,8 @@ export default function Register() {
       
       if (response.status === 200) {
         if (updatedFormData.role === "DOCTOR" && updatedFormData.specializationId) {
-          const doctorResponse = await registerService.saveDoctor({
-            userId: response.data.id, 
-            specializationId: updatedFormData.specializationId, 
-          });
           
-          if (doctorResponse.status === 200) {
+          if (response.status === 200) {
             alert("Doctor registration successful with specialization!");
           } else {
             setErrorMessage("Doctor specialization registration failed.");
