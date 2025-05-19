@@ -243,3 +243,12 @@ form {
     transition: background-color 0.3s ease, transform 0.3s ease;
     transform: scale(1.1);
 }
+
+.healSync-logo {
+  height: 20rem;
+  width: 20rem;
+  background-size: cover;
+  margin: auto;
+  margin-top: -3rem;
+  margin-bottom: -3rem;
+}

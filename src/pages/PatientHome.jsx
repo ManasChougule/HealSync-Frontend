@@ -17,7 +17,7 @@ import {
   Loader,
   Modal,
 } from "semantic-ui-react";
-import mhrsLogo from "../assets/mhrsLogo.png";
+import HealSync from "../assets/HealSync.png";
 import { CSSTransition } from "react-transition-group";
 import "../css/PatientHome.css";
 import health from "../assets/health.png";
@@ -74,16 +74,16 @@ const fetchDoctors = async (specializationName) => {
     setEditTime(appointment.time); // Set default time to current appointment time
 
     const doctor = appointment.doctor;
-    const daysOptions = doctor.workingDays.split(",").map((day) => ({
+    const daysOptions = doctor.workingDays ? doctor.workingDays.split(",").map((day) => ({
         key: day,
         text: day,
         value: day,
-    }));
-    const hoursOptions = doctor.workingHours.split(",").map((hour) => ({
+    })) : [];
+    const hoursOptions = doctor.workingHours ? doctor.workingHours.split(",").map((hour) => ({
         key: hour,
         text: hour,
         value: hour,
-    }));
+    })) : [];
 
     setWorkingDaysOptions(daysOptions);
     setWorkingHoursOptions(hoursOptions);
@@ -132,16 +132,16 @@ const fetchDoctors = async (specializationName) => {
     setSelectedDay("");
     setSelectedTime("");
 
-    const daysOptions = doctor.workingDays.split(",").map((day) => ({
-      key: day,
-      text: day,
-      value: day,
-    }));
-    const hoursOptions = doctor.workingHours.split(",").map((hour) => ({
-      key: hour,
-      text: hour,
-      value: hour,
-    }));
+    const daysOptions = doctor.workingDays ? doctor.workingDays.split(",").map((day) => ({
+        key: day,
+        text: day,
+        value: day,
+    })) : [];
+    const hoursOptions = doctor.workingHours ? doctor.workingHours.split(",").map((hour) => ({
+        key: hour,
+        text: hour,
+        value: hour,
+    })) : [];
 
     setWorkingDaysOptions(daysOptions);
     setWorkingHoursOptions(hoursOptions);
@@ -352,7 +352,7 @@ const fetchDoctors = async (specializationName) => {
                           </Card.Meta>
                           <Card.Description>
                             <p style={{ color: "#333", fontSize: "1em" }}>
-                              <strong>Hospital:</strong> {doctor.hospital.name}
+                              <strong>Hospital:</strong> {doctor.hospital ? doctor.hospital.name: null}
                             </p>
                             <p style={{ color: "#333", fontSize: "1em" }}>
                               <strong>Working Days:</strong>{" "}
@@ -636,12 +636,14 @@ const fetchDoctors = async (specializationName) => {
   ];
 
   return (
-    <Container>
-      <Image centered src={mhrsLogo} />
-      <Header as="h2" textAlign="center" style={{ marginTop: "20px" }}>
-        Welcome, {userName}!
-      </Header>
-      <Tab panes={panes} />
+    <Container>    
+        <div className="healSync-logo">
+            <Image centered src={HealSync} />
+        </div>
+        <Header as="h2" textAlign="center" style={{ marginTop: "20px" }}>
+            Welcome, {userName}!
+        </Header>
+        <Tab panes={panes} />
     </Container>
   );
 };
