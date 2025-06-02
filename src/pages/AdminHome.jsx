@@ -13,6 +13,7 @@ import {
   Label,
   Icon,
 } from "semantic-ui-react";
+import { Link } from "react-router-dom"; 
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -548,6 +549,12 @@ export default function AdminHome() {
     }
   };
 
+  <div style={{ marginBottom: "1em" }}>
+  <Link to="/admin/add-ambulance" className="ui button primary">
+    Add Ambulance
+  </Link>
+</div>
+  
   // Defining the contents of the tabs
   const panes = [
     {
@@ -1182,6 +1189,11 @@ export default function AdminHome() {
         pauseOnHover
         className="toast-container"
       />
+      <div style={{ marginBottom: "1em" }}>
+        <Link to="/admin/add-ambulance" className="ui button primary">
+          Add Ambulance
+        </Link>
+      </div>
     </Container>
   );
 }
@@ -1222,4 +1234,6 @@ const styles = {
     backgroundColor: "#f4f4f4",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
   },
+
+  
 };

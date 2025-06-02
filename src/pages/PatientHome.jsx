@@ -22,7 +22,7 @@ import { CSSTransition } from "react-transition-group";
 import "../css/PatientHome.css";
 import health from "../assets/health.png";
 import timetable from "../assets/timetable.png";
-
+import { Link } from "react-router-dom";
 const PatientHome = () => {
   const [userName, setUserName] = useState("");
   const [userData, setUserData] = useState(null);
@@ -636,6 +636,7 @@ const fetchDoctors = async (specializationName) => {
   ];
 
   return (
+
     <Container>    
         <div className="healSync-logo">
             <Image centered src={HealSync} />
@@ -644,6 +645,10 @@ const fetchDoctors = async (specializationName) => {
             Welcome, {userName}!
         </Header>
         <Tab panes={panes} />
+       <Button as={Link} to="/ambulance-booking" primary>
+        Book Ambulance
+      </Button>
+
     </Container>
   );
 };

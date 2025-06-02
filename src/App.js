@@ -6,6 +6,9 @@ import Register from './pages/Register';
 import AdminHome from './pages/AdminHome';
 import DoctorHome from './pages/DoctorHome';
 import PatientHome from './pages/PatientHome';
+import AmbulanceBooking from './pages/AmbulanceBooking';
+import AddAmbulance from './pages/AddAmbulance';
+
 
 function App() {
   return (
@@ -16,6 +19,8 @@ function App() {
         <Route path="/admin-home" element={<AdminHome />} />
         <Route path="/patient-home" element={<PatientHome />} />
         <Route path="/doctor-home" element={<DoctorHome />} />
+        <Route path="/ambulance-booking" element={<AmbulanceBooking />} />
+        <Route path="/admin/add-ambulance" element={<AddAmbulance />} />
       </Routes>
     </Router>
   );
