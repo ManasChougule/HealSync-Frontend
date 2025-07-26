@@ -3,98 +3,113 @@ import axios from 'axios';
 
 function AmbulanceBooking() {
   const [pickupLocation, setPickupLocation] = useState('');
-  const [destination, setDestination] = useState('');
+  const [hospitalId, setHospitalId] = useState('');
   const [availableAmbulances, setAvailableAmbulances] = useState([]);
   const [selectedAmbulance, setSelectedAmbulance] = useState('');
+  const [hospitals, setHospitals] = useState([]);
   const [message, setMessage] = useState('');
   
-  // In a real application, you would retrieve the logged-in patient's ID from context or global state
-  const patientId = 1; // Example: hardcoded for demonstration
+  const patientId = 1; // hardcoded or from session
 
-  // Fetch available ambulances from the backend on component mount
   useEffect(() => {
+    // Fetch available ambulances
     const fetchAmbulances = async () => {
       try {
-        // If using a proxy, you can simply use the relative URL
-        const response = await axios.get('http://localhost:8080/ambulance-bookings/available-ambulances');
-        setAvailableAmbulances(response.data);
-      } catch (error) {
-        console.error('Error fetching ambulances:', error);
+        const res = await axios.get('http://localhost:8080/ambulance/available');
+        setAvailableAmbulances(res.data);
+      } catch (err) {
+        console.error('Error fetching ambulances:', err);
       }
     };
+
+    // Fetch hospitals
+    const fetchHospitals = async () => {
+      try {
+        const res = await axios.get('http://localhost:8080/hospitals');
+        setHospitals(res.data);
+      } catch (err) {
+        console.error('Error fetching hospitals:', err);
+      }
+    };
+
     fetchAmbulances();
+    fetchHospitals();
   }, []);
 
   const handleBooking = async (e) => {
     e.preventDefault();
 
-    // Validate that an ambulance is selected
-    if (!selectedAmbulance) {
-      setMessage('Please select an ambulance.');
+    if (!selectedAmbulance || !hospitalId || !pickupLocation) {
+      setMessage('Please fill all fields.');
       return;
     }
 
-    // Construct the DTO: note that we include ambulanceId along with other fields.
     const bookingDto = {
       patientId,
-      ambulanceId: selectedAmbulance, // selectedAmbulance holds the id (number)
+      ambulanceId: selectedAmbulance,
       pickupLocation,
-      destination,
+      hospitalId
     };
 
     try {
-      const response = await axios.post('http://localhost:8080/ambulance-bookings/book', bookingDto);
-      setMessage(`Ambulance booked successfully! Booking ID: ${response.data.id}`);
-    } catch (error) {
-      console.error('Error booking ambulance:', error);
-      const errorMsg = error.response?.data || error.message;
-      setMessage('Error booking ambulance: ' + errorMsg);
+      const res = await axios.post('http://localhost:8080/ambulance/book', bookingDto);
+      setMessage(res.data);
+
+      // Refresh list
+      const updated = await axios.get('http://localhost:8080/ambulance/available');
+      setAvailableAmbulances(updated.data);
+    } catch (err) {
+      console.error('Booking failed:', err);
+      setMessage('Booking failed: ' + (err.response?.data || err.message));
     }
   };
 
   return (
     <div className="ui container">
-      <h2>Ambulance Booking</h2>
-      
-      {/* Render the booking form */}
+      <h2>Book an Ambulance</h2>
       <form className="ui form" onSubmit={handleBooking}>
         <div className="field">
           <label>Pickup Location:</label>
-          <input 
-            type="text" 
-            value={pickupLocation} 
-            onChange={(e) => setPickupLocation(e.target.value)} 
-            placeholder="Enter pickup location" 
-            required 
+          <input
+            type="text"
+            value={pickupLocation}
+            onChange={(e) => setPickupLocation(e.target.value)}
+            required
           />
         </div>
+
         <div className="field">
-          <label>Destination (optional):</label>
-          <input 
-            type="text" 
-            value={destination} 
-            onChange={(e) => setDestination(e.target.value)} 
-            placeholder="Enter destination" 
-          />
+          <label>Drop Location (Hospital):</label>
+          <select
+            value={hospitalId}
+            onChange={(e) => setHospitalId(e.target.value)}
+            required
+          >
+            <option value="">-- Select Hospital --</option>
+            {hospitals.map(h => (
+              <option key={h.id} value={h.id}>{h.name}</option>
+            ))}
+          </select>
         </div>
+
         <div className="field">
-          <label>Select an Ambulance:</label>
-          <select 
-            value={selectedAmbulance} 
+          <label>Available Ambulances:</label>
+          <select
+            value={selectedAmbulance}
             onChange={(e) => setSelectedAmbulance(e.target.value)}
             required
           >
-            <option value="">-- Choose Ambulance --</option>
-            {availableAmbulances.map((ambulance) => (
-              <option key={ambulance.id} value={ambulance.id}>
-                {ambulance.registrationNumber} - {ambulance.driverName} ({ambulance.status})
+            <option value="">-- Select Ambulance --</option>
+            {availableAmbulances.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.registrationNumber} - {a.driverName}
               </option>
             ))}
           </select>
         </div>
-        <button type="submit" className="ui primary button">Book Ambulance</button>
+
+        <button className="ui primary button" type="submit">Book</button>
       </form>
-      
       {message && <div className="ui message">{message}</div>}
     </div>
   );

@@ -645,9 +645,8 @@ const fetchDoctors = async (specializationName) => {
             Welcome, {userName}!
         </Header>
         <Tab panes={panes} />
-       <Button as={Link} to="/ambulance-booking" primary>
-        Book Ambulance
-      </Button>
+       
+      <Link to="/book-ambulance" className="btn btn-primary">Book Ambulance</Link>
 
     </Container>
   );

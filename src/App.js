@@ -8,7 +8,7 @@ import DoctorHome from './pages/DoctorHome';
 import PatientHome from './pages/PatientHome';
 import AmbulanceBooking from './pages/AmbulanceBooking';
 import AddAmbulance from './pages/AddAmbulance';
-
+import BookAmbulance from './pages/BookAmbulance';
 
 function App() {
   return (
@@ -19,8 +19,8 @@ function App() {
         <Route path="/admin-home" element={<AdminHome />} />
         <Route path="/patient-home" element={<PatientHome />} />
         <Route path="/doctor-home" element={<DoctorHome />} />
-        <Route path="/ambulance-booking" element={<AmbulanceBooking />} />
         <Route path="/admin/add-ambulance" element={<AddAmbulance />} />
+        <Route path="/book-ambulance" element={<BookAmbulance />} />
       </Routes>
     </Router>
   );
