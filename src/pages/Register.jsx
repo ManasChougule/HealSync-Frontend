@@ -1,29 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  FormField,
-  Button,
-  Form,
-  Dropdown,
-  Container,
-  Header,
-  Message,
-  Icon,
-} from "semantic-ui-react";
+import { Form, Button, Container, Alert, Row, Col } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import RegisterService from "../services/registerService";
 import axios from "axios";
 import hospitalImage from "../assets/hospital.png";
 
-const roles = [
-  { key: "ad", value: "ADMIN", text: "ADMIN" },
-  { key: "pa", value: "PATIENT", text: "PATIENT" },
-  { key: "do", value: "DOCTOR", text: "DOCTOR" },
-];
-
-const genders = [
-  { key: "ma", value: "MALE", text: "MALE" },
-  { key: "fe", value: "FEMALE", text: "FEMALE" },
-];
+const roles = ["ADMIN", "PATIENT", "DOCTOR"];
+const genders = ["MALE", "FEMALE"];
 
 export default function Register() {
   const navigate = useNavigate();
@@ -33,26 +15,24 @@ export default function Register() {
     firstName: "",
     lastName: "",
     role: "",
+    gender: "",
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [specializationOptions, setSpecializationOptions] = useState([]);
-
   const [specialization, setSpecialization] = useState(null);
 
   useEffect(() => {
     axios
       .get("http://localhost:8080/specializations/all")
       .then((response) => {
-        const options = response.data.map((specialization) => ({
-          key: specialization.id,
-          text: specialization.name,
-          value: specialization.id,
+        const options = response.data.map((spec) => ({
+          id: spec.id,
+          name: spec.name,
         }));
-        console.log("options="+options);
         setSpecializationOptions(options);
       })
       .catch((error) => {
-        console.error("An error occurred while loading specializations:", error);
+        console.error("Error loading specializations:", error);
       });
   }, []);
 
@@ -61,219 +41,92 @@ export default function Register() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleRoleChange = (e, { value }) => {
-    setFormData({ ...formData, role: value });
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const dataToSend = { ...formData, specializationId: specialization };
 
-  const handleGenderChange = (e, { value }) => {
-    setFormData({ ...formData, gender: value });
-  };
-
-  const handleSubmit = async () => {
-    const registerService = new RegisterService();
-    
     try {
-      const updatedFormData = { ...formData, specializationId: specialization };
-      const response = await registerService.saveUser(updatedFormData);
-      
-      if (response.status === 200) {
-        if (updatedFormData.role === "DOCTOR" && updatedFormData.specializationId) {
-          
-          if (response.status === 200) {
-            alert("Doctor registration successful with specialization!");
-          } else {
-            setErrorMessage("Doctor specialization registration failed.");
-            return;
-          }
-        }
-    
-        alert("Registration Successful!");
-        navigate("/"); 
+      const res = await axios.post("http://localhost:8080/registration/register", dataToSend);
+      if (res.status === 200) {
+        alert("Registration successful!");
+        navigate("/");
       } else {
-        setErrorMessage("Registration Failed. Please try again.");
+        setErrorMessage("Registration failed. Try again.");
       }
     } catch (error) {
-      console.error("Error during registration:", error);
-      setErrorMessage(
-        "An error occurred during registration. Please try again."
-      );
+      console.error("Registration error:", error);
+      setErrorMessage("Error during registration. Try again.");
     }
   };
-  
-  
 
   return (
-    <Container style={styles.container}>
-      <Header as="h2" textAlign="center" style={styles.header}>
-      <img 
-          src={hospitalImage} 
-          alt="Hospital Logo" 
-          style={{ marginBottom: "10px", width: "60px", height: "60px" }} 
-        />
-        <span>Hospital Appointment System</span>
-      </Header>
-      <Form onSubmit={handleSubmit} size="large">
-        <FormField>
-          <label>E-mail</label>
-          <input
-            placeholder="E-mail"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            style={styles.input}
-          />
-        </FormField>
-        <FormField>
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="Password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            style={styles.input}
-          />
-        </FormField>
+    <Container style={{ maxWidth: "500px", marginTop: "50px" }}>
+      <div className="text-center mb-4">
+        <img src={hospitalImage} alt="Hospital" width="60" height="60" />
+        <h2 style={{ color: "#388e3c" }}>Hospital Appointment System</h2>
+      </div>
+      <Form onSubmit={handleSubmit}>
+        <Form.Group controlId="email" className="mb-3">
+          <Form.Label>Email</Form.Label>
+          <Form.Control type="email" name="email" value={formData.email} onChange={handleChange} required />
+        </Form.Group>
 
-        <FormField>
-          <label>Gender</label>
-          <Dropdown
-            clearable
-            fluid
-            selection
-            options={genders}
-            placeholder="Select Gender"
-            name="gender"
-            value={formData.gender}
-            onChange={handleGenderChange}
-            style={styles.dropdown}
-          />
-        </FormField>
+        <Form.Group controlId="password" className="mb-3">
+          <Form.Label>Password</Form.Label>
+          <Form.Control type="password" name="password" value={formData.password} onChange={handleChange} required />
+        </Form.Group>
 
-        <FormField>
-          <label>First Name</label>
-          <input
-            placeholder="First Name"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            style={styles.input}
-          />
-        </FormField>
-        <FormField>
-          <label>Last Name</label>
-          <input
-            placeholder="Last Name"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            style={styles.input}
-          />
-        </FormField>
-        <FormField>
-          <label>Role</label>
-          <Dropdown
-            clearable
-            fluid
-            selection
-            options={roles}
-            placeholder="Select Role"
-            name="role"
-            value={formData.role}
-            onChange={handleRoleChange}
-            style={styles.dropdown}
-          />
-        </FormField>
+        <Form.Group controlId="gender" className="mb-3">
+          <Form.Label>Gender</Form.Label>
+          <Form.Select name="gender" value={formData.gender} onChange={handleChange} required>
+            <option value="">Select Gender</option>
+            {genders.map((g, idx) => (
+              <option key={idx} value={g}>{g}</option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group controlId="firstName" className="mb-3">
+          <Form.Label>First Name</Form.Label>
+          <Form.Control name="firstName" value={formData.firstName} onChange={handleChange} required />
+        </Form.Group>
+
+        <Form.Group controlId="lastName" className="mb-3">
+          <Form.Label>Last Name</Form.Label>
+          <Form.Control name="lastName" value={formData.lastName} onChange={handleChange} required />
+        </Form.Group>
+
+        <Form.Group controlId="role" className="mb-3">
+          <Form.Label>Role</Form.Label>
+          <Form.Select name="role" value={formData.role} onChange={handleChange} required>
+            <option value="">Select Role</option>
+            {roles.map((r, idx) => (
+              <option key={idx} value={r}>{r}</option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+
         {formData.role === "DOCTOR" && (
-        <Form.Select
-          label="Specialization"
-          options={specializationOptions}
-          value={specialization}
-          onChange={(e, { value }) => setSpecialization(value)}
-        />
-      )}
-        {errorMessage && <Message negative>{errorMessage}</Message>}
-        <Button type="submit" primary fluid size="large" style={styles.button}>
-          Submit
-        </Button>
+          <Form.Group controlId="specialization" className="mb-3">
+            <Form.Label>Specialization</Form.Label>
+            <Form.Select value={specialization || ""} onChange={(e) => setSpecialization(e.target.value)} required>
+              <option value="">Select Specialization</option>
+              {specializationOptions.map((spec) => (
+                <option key={spec.id} value={spec.id}>{spec.name}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        )}
+
+        {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
+
+        <Button type="submit" style={{ backgroundColor: "#388e3c", borderColor: "#388e3c" }} className="w-100">Submit</Button>
       </Form>
-      <div style={styles.linkContainer}>
+      <div className="text-center mt-3">
         <p>
-          Already have an account?
-          <span style={styles.link} onClick={() => navigate("/")}>
-            Sign In!
-          </span>
+          Already have an account? <span style={{ color: "blue", cursor: "pointer" }} onClick={() => navigate("/")}>Sign In!</span>
         </p>
       </div>
     </Container>
   );
 }
-
-const styles = {
-  container: {
-    marginTop: "7em",
-    background: "linear-gradient(145deg, #f7f7f7, #e0e0e0)",
-    padding: "40px",
-    borderRadius: "15px",
-    boxShadow: "0 20px 30px rgba(0,0,0,0.2)",
-    maxWidth: "450px",
-    margin: "0 auto",
-    animation: "fadeIn 1s ease-out",
-  },
-  header: {
-    fontFamily: "Arial, sans-serif",
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: "25px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  input: {
-    borderRadius: "50px",
-    padding: "15px",
-    marginBottom: "20px",
-    border: "1px solid #ccc",
-    transition: "all 0.3s ease",
-  },
-  dropdown: {
-    borderRadius: "50px",
-    padding: "15px",
-    marginBottom: "20px",
-    border: "1px solid #ccc",
-    transition: "all 0.3s ease",
-  },
-  button: {
-    borderRadius: "50px",
-    background: "#388e3c",
-    color: "#fff",
-    padding: "15px",
-    fontWeight: "bold",
-    marginTop: "20px",
-    transition: "background-color 0.3s ease",
-    "&:hover": {
-      background: "#2c6b2f",
-    },
-  },
-  linkContainer: {
-    marginTop: "15px",
-    textAlign: "center",
-  },
-  link: {
-    color: "#388e3c",
-    cursor: "pointer",
-    textDecoration: "underline",
-    fontWeight: "bold",
-  },
-};
-
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(
-  `
-    @keyframes fadeIn {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
-    }
-`,
-  styleSheet.cssRules.length
-);
