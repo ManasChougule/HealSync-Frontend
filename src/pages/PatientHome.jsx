@@ -1,223 +1,653 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Container, Button, Modal, Form, Tab, Tabs, Spinner, Card, Dropdown, Alert, Row, Col } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import {
+  Image,
+  Container,
+  Segment,
+  Header,
+  Dropdown,
+  Card,
+  Button,
+  Form,
+  Message,
+  Tab,
+  Label,
+  Icon,
+  Dimmer,
+  Loader,
+  Modal,
+} from "semantic-ui-react";
 import HealSync from "../assets/HealSync.png";
-import adminService from "../services/adminService"; // Assuming API calls are similar
-
+import { CSSTransition } from "react-transition-group";
+import "../css/PatientHome.css";
+import health from "../assets/health.png";
+import timetable from "../assets/timetable.png";
+import { Link } from "react-router-dom";
 const PatientHome = () => {
   const [userName, setUserName] = useState("");
   const [userData, setUserData] = useState(null);
-  const [specializations, setSpecializations] = useState([]);
-  const [selectedSpec, setSelectedSpec] = useState("");
+  const [specialization, setSpecialization] = useState("");
   const [doctors, setDoctors] = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(false);
-
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDay, setSelectedDay] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [appointmentSuccess, setAppointmentSuccess] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [specializationOptions, setSpecializationOptions] = useState([]);
+  const [workingDaysOptions, setWorkingDaysOptions] = useState([]);
+  const [workingHoursOptions, setWorkingHoursOptions] = useState([]);
+  const [loading, setLoading] = useState(false);// Animation for page loading
 
-  const [editModal, setEditModal] = useState(false);
-  const [editAppointment, setEditAppointment] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editAppointment, setEditAppointment] = useState(null); // Appointment details to be edited
+  const [editDay, setEditDay] = useState(""); 
+  const [editTime, setEditTime] = useState(""); 
 
   useEffect(() => {
-    const userFromStorage = JSON.parse(localStorage.getItem("user"));
-    if (userFromStorage) {
-      setUserData(userFromStorage);
-      setUserName(`${userFromStorage.firstName} ${userFromStorage.lastName}`);
-      fetchAppointments(userFromStorage.patientId);
+    const userDataFromStorage = JSON.parse(localStorage.getItem("user"));
+    if (userDataFromStorage) {
+      setUserData(userDataFromStorage);
+      setUserName(
+        `${userDataFromStorage.firstName} ${userDataFromStorage.lastName}`
+      );
     }
+  }, []);
+
+const fetchDoctors = async (specializationName) => {
+    setLoading(true); // Start loading animation
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/doctors/doctors?specializationName=${specializationName}`
+      );
+      setDoctors(response.data);
+    } catch (error) {
+      console.error("Error occurred while fetching doctors:", error);
+    } finally {
+      setLoading(false); // Stop loading animation
+    }
+  };
+
+    // Open form when Edit button is clicked
+    const handleEditAppointment = (appointment) => {
+    setEditAppointment(appointment);
+    setEditDay(appointment.day); // Set default day to current appointment day
+    setEditTime(appointment.time); // Set default time to current appointment time
+
+    const doctor = appointment.doctor;
+    const daysOptions = doctor.workingDays ? doctor.workingDays.split(",").map((day) => ({
+        key: day,
+        text: day,
+        value: day,
+    })) : [];
+    const hoursOptions = doctor.workingHours ? doctor.workingHours.split(",").map((hour) => ({
+        key: hour,
+        text: hour,
+        value: hour,
+    })) : [];
+
+    setWorkingDaysOptions(daysOptions);
+    setWorkingHoursOptions(hoursOptions);
+
+    setEditModalOpen(true); // Open the form modal
+    };
+
+  useEffect(() => {
+    const fetchSpecializations = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:8080/specializations/all"
+        );
+        const options = response.data.map((specialization) => ({
+          key: specialization.id,
+          text: specialization.name,
+          value: specialization.name,
+        }));
+        setSpecializationOptions(options);
+      } catch (error) {
+        console.error("Error occurred while fetching specializations:", error);
+      }
+    };
+
     fetchSpecializations();
   }, []);
 
-  const fetchSpecializations = async () => {
-    try {
-      const res = await axios.get("http://localhost:8080/specializations/all");
-      setSpecializations(res.data);
-    } catch (err) {
-      alert("Failed to fetch clinics");
-    }
-  };
-
-  const fetchDoctors = async (specName) => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`http://localhost:8080/doctors/doctors?specializationName=${specName}`);
-      setDoctors(res.data);
-    } catch {
-      alert("Error fetching doctors");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchAppointments = async (patientId) => {
     try {
-      const res = await axios.get(`http://localhost:8080/appointments/patient/${patientId}`);
-      setAppointments(res.data);
-    } catch {
-      alert("Error fetching appointments");
+      const response = await axios.get(
+        `http://localhost:8080/appointments/patient/${patientId}`
+      );
+      setAppointments(response.data);
+    } catch (error) {
+      console.error("An error occurred while fetching appointments:", error);
     }
   };
 
-  const bookAppointment = async () => {
-    if (!selectedDoctor || !selectedDay || !selectedTime) {
-      alert("Select doctor, day, and time");
+  const handleSpecializationChange = (e, { value }) => {
+    setSpecialization(value);
+    fetchDoctors(value);
+  };
+
+  const handleDoctorSelect = async (doctor) => {
+    setSelectedDoctor(doctor);
+    setSelectedDay("");
+    setSelectedTime("");
+
+    const daysOptions = doctor.workingDays ? doctor.workingDays.split(",").map((day) => ({
+        key: day,
+        text: day,
+        value: day,
+    })) : [];
+    const hoursOptions = doctor.workingHours ? doctor.workingHours.split(",").map((hour) => ({
+        key: hour,
+        text: hour,
+        value: hour,
+    })) : [];
+
+    setWorkingDaysOptions(daysOptions);
+    setWorkingHoursOptions(hoursOptions);
+  };
+
+  const handleDeleteAppointment = async (appointmentId) => {
+    try {
+      const response = await axios.delete(
+        `http://localhost:8080/registration/appointments/delete/${appointmentId}`
+      );
+      if (response.status === 200) {
+        alert("Your appointment has been successfully deleted.");
+        setAppointments(
+          appointments.filter((appointment) => appointment.id !== appointmentId)
+        );
+      }
+    } catch (error) {
+        console.error("An error occurred while deleting the appointment:", error);
+        alert("An error occurred while deleting the appointment.");
+    }
+  };
+
+  function getStatusColor(status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "orange";
+      case "confirmed":
+        return "green"; 
+      case "cancelled":
+        return "red";
+      default:
+        return "grey"; // Default color
+    }
+  }
+
+  const handleAppointmentRequest = async () => {
+    if (!userData) {
+      alert("User information could not be loaded. Please log in.");
       return;
     }
-    try {
-      const available = await axios.get(`http://localhost:8080/appointments/check-availability?doctorId=${selectedDoctor.id}&day=${selectedDay}&time=${selectedTime}`);
-      if (available.status === 200) {
-        const data = {
-          doctorId: selectedDoctor.id,
-          patientId: userData.patientId,
-          day: selectedDay,
-          time: selectedTime,
-        };
-        await axios.post("http://localhost:8080/appointments/create", data);
-        alert("Appointment booked");
-        fetchAppointments(userData.patientId);
+
+    const patientId = userData.patientId;
+    if (selectedDay && selectedTime && patientId && selectedDoctor) {
+      try {
+        const availabilityResponse = await axios.get(
+          `http://localhost:8080/appointments/check-availability?doctorId=${selectedDoctor.id}&day=${selectedDay}&time=${selectedTime}`
+        );
+
+        if (availabilityResponse.status === 200) {
+          const appointmentData = {
+            doctorId: selectedDoctor.id,
+            patientId: patientId,
+            day: selectedDay,
+            time: selectedTime,
+          };
+
+          const appointmentResponse = await axios.post(
+            "http://localhost:8080/appointments/create",
+            appointmentData
+          );
+
+          if (appointmentResponse.status === 200) {
+            setAppointmentSuccess(true);
+            fetchAppointments(userData.patientId);
+          }
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 400) {
+          alert("The doctor is not available at this time.");
+        } else {
+          alert("The appointment could not be saved. Please try again.");
+        }
       }
-    } catch (err) {
-      alert("Doctor not available at this time");
+    } else {
+      alert("Please select a day and time or the patient ID is incorrect.");
     }
   };
 
-  const deleteAppointment = async (id) => {
+  const handleUpdateAppointment = async () => {
+    if (!editAppointment || !editDay || !editTime) {
+      alert("Please select a day and time.");
+      return;
+    }
+
     try {
-      await axios.delete(`http://localhost:8080/registration/appointments/delete/${id}`);
-      alert("Appointment deleted");
+      // Availability check
+      const availabilityResponse = await axios.get(
+        `http://localhost:8080/appointments/check-availability?doctorId=${editAppointment.doctor.id}&day=${editDay}&time=${editTime}`
+      );
+
+      if (availabilityResponse.status === 200) {
+        // Update appointment if available
+        const response = await axios.put(
+          `http://localhost:8080/appointments/update/${editAppointment.id}?day=${editDay}&time=${editTime}`
+        );
+
+        if (response.status === 200) {
+            alert("Appointment successfully updated.");
+            setEditModalOpen(false); // Close the form
+            fetchAppointments(userData.patientId); // Reload updated appointments
+        }
+      }
+    } catch (error) {
+        console.error("An error occurred while updating the appointment:", error);
+        alert("The doctor is not available at this time.");
+    }
+  };
+
+  useEffect(() => {
+    if (specialization) {
+      fetchDoctors(specialization);
+    } else {
+      setDoctors([]);
+    }
+  }, [specialization]);
+
+  useEffect(() => {
+    if (userData) {
       fetchAppointments(userData.patientId);
-    } catch {
-      alert("Delete failed");
     }
-  };
+  }, [userData]);
 
-  const updateAppointment = async () => {
-    try {
-      const available = await axios.get(`http://localhost:8080/appointments/check-availability?doctorId=${editAppointment.doctor.id}&day=${selectedDay}&time=${selectedTime}`);
-      if (available.status === 200) {
-        await axios.put(`http://localhost:8080/appointments/update/${editAppointment.id}?day=${selectedDay}&time=${selectedTime}`);
-        alert("Appointment updated");
-        setEditModal(false);
-        fetchAppointments(userData.patientId);
-      }
-    } catch {
-      alert("Doctor not available at this time");
-    }
-  };
-
-  const tabs = [
+  const panes = [
     {
-      title: "Search Appointment",
-      content: (
-        <Row className="justify-content-center">
-          <Col md={8}>
-            <Form.Group className="mb-3">
-              <Form.Label>Choose Clinic</Form.Label>
-              <Form.Select value={selectedSpec} onChange={e => { setSelectedSpec(e.target.value); fetchDoctors(e.target.value); }}>
-                <option value="">Select</option>
-                {specializations.map(spec => (
-                  <option key={spec.id} value={spec.name}>{spec.name}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+      menuItem: "Search Appointment",
+      render: () => (
+        <Tab.Pane attached={false}>
+          <Segment raised>
+            <Header as="h2" textAlign="center" style={{ marginBottom: "20px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: "20px",
+                }}
+              >
+                Search Appointment
+                <img
+                  src={health}
+                  alt="stethoscope logo"
+                  style={{ width: "49px", height: "40px" }}
+                />
+              </div>
+            </Header>
 
-            {loading ? <Spinner animation="border" /> : (
-              doctors.map(doc => (
-                <Card key={doc.id} className="mb-2">
-                  <Card.Body>
-                    <Card.Title>Dr. {doc.user.firstName} {doc.user.lastName}</Card.Title>
-                    <Card.Text>
-                      Clinic: {doc.specialization.name}<br />
-                      Hospital: {doc.hospital?.name}<br />
-                      Days: {doc.workingDays}<br />
-                      Hours: {doc.workingHours}
-                    </Card.Text>
-                    <Button onClick={() => setSelectedDoctor(doc)}>Book</Button>
-                  </Card.Body>
-                </Card>
-              ))
+            <Dropdown
+              placeholder="Select Clinic"
+              fluid
+              selection
+              options={specializationOptions}
+              onChange={handleSpecializationChange}
+              value={specialization}
+              style={{ fontSize: "16px", marginBottom: "20px" }}
+            />
+
+            {loading ? (
+              <Dimmer active inverted>
+                <Loader>Loading Doctors...</Loader>
+              </Dimmer>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                }}
+              >
+                {doctors.length === 0 ? (
+                  <Message>No doctor found</Message>
+                ) : (
+                  doctors.map((doctor) => (
+                    <CSSTransition
+                      key={doctor.id}
+                      timeout={500}
+                      classNames="doctor-card"
+                    >
+                      <Card
+                        raised
+                        fluid
+                        style={{
+                          margin: "20px",
+                          cursor: "pointer",
+                          boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
+                          transition:
+                            "transform 0.3s ease, box-shadow 0.3s ease",
+                        }}
+                        onClick={() => handleDoctorSelect(doctor)}
+                      >
+                        <Card.Content>
+                          <Card.Header
+                            style={{
+                              fontSize: "1.5em",
+                              fontWeight: "bold",
+                              color: "#1b6d2f",
+                            }}
+                          >
+                            {doctor.user.firstName} {doctor.user.lastName}
+                          </Card.Header>
+                          <Card.Meta
+                            style={{
+                              fontSize: "1.1em",
+                              color: "#555",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            {doctor.specialization.name}
+                          </Card.Meta>
+                          <Card.Description>
+                            <p style={{ color: "#333", fontSize: "1em" }}>
+                              <strong>Hospital:</strong> {doctor.hospital ? doctor.hospital.name: null}
+                            </p>
+                            <p style={{ color: "#333", fontSize: "1em" }}>
+                              <strong>Working Days:</strong>{" "}
+                              {doctor.workingDays}
+                            </p>
+                            <p style={{ color: "#333", fontSize: "1em" }}>
+                              <strong>Working Hours:</strong>{" "}
+                              {doctor.workingHours}
+                            </p>
+                          </Card.Description>
+                        </Card.Content>
+                        <Card.Content extra>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "#1b6d2f",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              Request Appointment
+                            </span>
+                            <Icon name="arrow right" color="green" />
+                          </div>
+                        </Card.Content>
+                      </Card>
+                    </CSSTransition>
+                  ))
+                )}
+              </div>
             )}
 
             {selectedDoctor && (
-              <>
-                <h5>Book Appointment with Dr. {selectedDoctor.user.firstName}</h5>
-                <Form.Group className="mb-2">
-                  <Form.Label>Day</Form.Label>
-                  <Form.Control type="text" placeholder="e.g. Monday" value={selectedDay} onChange={e => setSelectedDay(e.target.value)} />
-                </Form.Group>
-                <Form.Group className="mb-2">
-                  <Form.Label>Time</Form.Label>
-                  <Form.Control type="text" placeholder="e.g. 10:00 AM" value={selectedTime} onChange={e => setSelectedTime(e.target.value)} />
-                </Form.Group>
-                <Button onClick={bookAppointment}>Book</Button>
-              </>
+              <div>
+                <Header
+                  as="h3"
+                  textAlign="center"
+                  style={{ marginBottom: "20px" }}
+                >
+                  Make an Appointment with Dr. {selectedDoctor.user.firstName}{" "}
+                  {selectedDoctor.user.lastName}
+                </Header>
+
+                <Form
+                  success={appointmentSuccess}
+                  warning={!appointmentSuccess}
+                  size="large"
+                >
+                  {appointmentSuccess && (
+                    <Message
+                      success
+                      header="Appointment Request Sent"
+                      content="Your appointment has been saved successfully."
+                    />
+                  )}
+
+                  <Form.Field>
+                    <label>Select a day</label>
+                    <Dropdown
+                      placeholder="Select a day"
+                      fluid
+                      selection
+                      options={workingDaysOptions}
+                      onChange={(e, { value }) => setSelectedDay(value)}
+                      value={selectedDay}
+                    />
+                  </Form.Field>
+
+                  <Form.Field>
+                    <label>Select an hour</label>
+                    <Dropdown
+                      placeholder="Select an hour"
+                      fluid
+                      selection
+                      options={workingHoursOptions}
+                      onChange={(e, { value }) => setSelectedTime(value)}
+                      value={selectedTime}
+                    />
+                  </Form.Field>
+
+                  <Button
+                    type="submit"
+                    fluid
+                    primary
+                    onClick={handleAppointmentRequest}
+                  >
+                    Book Appointment
+                  </Button>
+                </Form>
+              </div>
             )}
-          </Col>
-        </Row>
-      )
+          </Segment>
+        </Tab.Pane>
+      ),
     },
     {
-      title: "Your Appointments",
-      content: (
-        <Row className="justify-content-center">
-          <Col md={8}>
-            {appointments.length === 0 ? <Alert variant="info">No appointments</Alert> : appointments.map(ap => (
-              <Card key={ap.id} className="mb-2">
-                <Card.Body>
-                  <Card.Title>{ap.day} at {ap.time}</Card.Title>
-                  <Card.Text>
-                    Doctor: {ap.doctor.user.firstName} {ap.doctor.user.lastName}<br />
-                    Clinic: {ap.doctor.specialization.name}<br />
-                    Hospital: {ap.doctor.hospital.name}<br />
-                    Status: {ap.status}
-                  </Card.Text>
-                  <Button variant="danger" onClick={() => deleteAppointment(ap.id)}>Delete</Button>{' '}
-                  <Button variant="info" onClick={() => { setEditAppointment(ap); setSelectedDay(ap.day); setSelectedTime(ap.time); setEditModal(true); }}>Edit</Button>
-                </Card.Body>
-              </Card>
-            ))}
-          </Col>
-        </Row>
-      )
-    }
+      menuItem: "Your Appointments",
+      render: () => (
+        <Tab.Pane attached={false}>
+          <Segment
+            raised
+            style={{ backgroundColor: "#f9f9f9", padding: "20px" }}
+          >
+            <Header as="h2" textAlign="center" style={{ marginBottom: "30px" }}>
+              Your Appointments
+              <img src={timetable} alt="stethoscope logo" />
+            </Header>
+
+            {appointments.length === 0 ? (
+              <Message>No appointments found</Message>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: "20px",
+                }}
+              >
+                <Modal
+                  open={editModalOpen}
+                  onClose={() => setEditModalOpen(false)}
+                  size="small"
+                >
+                  <Modal.Header>Edit Appointment</Modal.Header>
+                  <Modal.Content>
+                    <Form>
+                      <Form.Field>
+                        <label>Select Day</label>
+                        <Dropdown
+                          placeholder="Select a day"
+                          fluid
+                          selection
+                          options={workingDaysOptions}
+                          onChange={(e, { value }) => setEditDay(value)}
+                          value={editDay}
+                        />
+                      </Form.Field>
+                      <Form.Field>
+                        <label>Select Time</label>
+                        <Dropdown
+                          placeholder="Select an hour"
+                          fluid
+                          selection
+                          options={workingHoursOptions}
+                          onChange={(e, { value }) => setEditTime(value)}
+                          value={editTime}
+                        />
+                      </Form.Field>
+                    </Form>
+                  </Modal.Content>
+                  <Modal.Actions>
+                    <Button
+                      color="black"
+                      onClick={() => setEditModalOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      color="green"
+                      onClick={handleUpdateAppointment}
+                      disabled={!editDay || !editTime}
+                    >
+                      Save
+                    </Button>
+                  </Modal.Actions>
+                </Modal>
+
+                {appointments.map((appointment) => (
+                  <CSSTransition
+                    key={appointment.id}
+                    timeout={500}
+                    classNames="appointment-card"
+                  >
+                    <Card
+                      style={{
+                        width: "300px",
+                        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                        transition: "transform 0.3s ease-in-out",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.transform = "scale(1.05)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.transform = "scale(1)")
+                      }
+                    >
+                      <Card.Content>
+                        <Card.Header
+                          style={{
+                            fontSize: "1.3em",
+                            color: "#333",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          {appointment.day} at {appointment.time}
+                        </Card.Header>
+                        <Card.Description>
+                          <p
+                            style={{
+                              margin: "0",
+                              fontSize: "1.1em",
+                              color: "#555",
+                            }}
+                          >
+                            <strong>Doctor:</strong> Dr.{" "}
+                            {appointment.doctor.user.firstName}{" "}
+                            {appointment.doctor.user.lastName}
+                          </p>
+                          <p
+                            style={{
+                              margin: "0",
+                              fontSize: "1.1em",
+                              color: "#555",
+                            }}
+                          >
+                            <strong>Hospital:</strong>{" "}
+                            {appointment.doctor.hospital.name}{" "}
+                          </p>
+                          <p
+                            style={{
+                              margin: "0",
+                              fontSize: "1.1em",
+                              color: "#555",
+                            }}
+                          >
+                            <strong>Clinic:</strong>{" "}
+                            {appointment.doctor.specialization.name}{" "}
+                          </p>
+                        </Card.Description>
+                      </Card.Content>
+                      <Card.Content extra>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Button
+                            color="red"
+                            icon
+                            onClick={() =>
+                              handleDeleteAppointment(appointment.id)
+                            }
+                          >
+                            <Icon name="trash" />
+                          </Button>
+
+                          <Button
+                            color="blue"
+                            icon
+                            onClick={() => handleEditAppointment(appointment)}
+                          >
+                            <Icon name="edit" />
+                          </Button>
+                          <Label
+                            color={getStatusColor(appointment.status)}
+                            ribbon
+                          >
+                            {appointment.status}
+                          </Label>
+                        </div>
+                      </Card.Content>
+                    </Card>
+                  </CSSTransition>
+                ))}
+              </div>
+            )}
+          </Segment>
+        </Tab.Pane>
+      ),
+    },
   ];
 
   return (
-    <Container className="mt-4 text-center">
-      <img src={HealSync} alt="HealSync" style={{ maxWidth: "200px" }} className="mb-3" />
-      <h3>Welcome, {userName}</h3>
-      <Tabs defaultActiveKey="0" className="justify-content-center">
-        {tabs.map((tab, idx) => (
-          <Tab eventKey={idx.toString()} title={tab.title} key={idx}>
-            <div className="mt-3">{tab.content}</div>
-          </Tab>
-        ))}
-      </Tabs>
 
-      <Link to="/book-ambulance" className="btn btn-primary mt-3">Book Ambulance</Link>
+    <Container>    
+        <div className="healSync-logo">
+            <Image centered src={HealSync} />
+        </div>
+        <Header as="h2" textAlign="center" style={{ marginTop: "20px" }}>
+            Welcome, {userName}!
+        </Header>
+        <Tab panes={panes} />
+       
+      <Link to="/book-ambulance" className="btn btn-primary">Book Ambulance</Link>
 
-      <Modal show={editModal} onHide={() => setEditModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Edit Appointment</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-2">
-            <Form.Label>Day</Form.Label>
-            <Form.Control type="text" value={selectedDay} onChange={e => setSelectedDay(e.target.value)} />
-          </Form.Group>
-          <Form.Group className="mb-2">
-            <Form.Label>Time</Form.Label>
-            <Form.Control type="text" value={selectedTime} onChange={e => setSelectedTime(e.target.value)} />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setEditModal(false)}>Cancel</Button>
-          <Button variant="primary" onClick={updateAppointment}>Save</Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 };
