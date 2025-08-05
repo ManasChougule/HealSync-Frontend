@@ -215,8 +215,8 @@ export default function DoctorHome() {
     const updateData = {
       hospital: doctorDetails.hospital,
       specialization: doctorDetails.specialization,
-      workingDays: doctorDetails.workingDays.join(","),
-      workingHours: doctorDetails.workingHours.join(","),
+      workingDays: doctorDetails.workingDays ? doctorDetails.workingDays.join(",") : "",
+      workingHours:  doctorDetails.workingHours ? doctorDetails.workingHours.join(",") : "",
     };
 
     axios
@@ -303,7 +303,8 @@ export default function DoctorHome() {
                 options={hospitalOptions}
                 value={doctorDetails.hospital}
                 onChange={(e, { value }) =>
-                  setDoctorDetails({ ...doctorDetails, hospital: value })
+                  setDoctorDetails({ ...doctorDetails, hospital: value , workingDays: doctorDetails.workingDays ? doctorDetails.workingDays.split(",") : [],
+                    workingHours: doctorDetails.workingHours ? doctorDetails.workingHours.split(",") : [], })
                 }
               />
             </Form.Field>

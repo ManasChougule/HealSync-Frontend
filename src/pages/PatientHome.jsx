@@ -43,6 +43,8 @@ const PatientHome = () => {
   const [editDay, setEditDay] = useState(""); 
   const [editTime, setEditTime] = useState(""); 
 
+  const [filteredTime, setFilteredTime] = useState([]);
+
   useEffect(() => {
     const userDataFromStorage = JSON.parse(localStorage.getItem("user"));
     if (userDataFromStorage) {
@@ -125,6 +127,9 @@ const fetchDoctors = async (specializationName) => {
   const handleSpecializationChange = (e, { value }) => {
     setSpecialization(value);
     fetchDoctors(value);
+    setSelectedDoctor(null);
+    setWorkingDaysOptions([]);
+    setFilteredTime([]);
   };
 
   const handleDoctorSelect = async (doctor) => {
@@ -142,7 +147,6 @@ const fetchDoctors = async (specializationName) => {
         text: hour,
         value: hour,
     })) : [];
-
     setWorkingDaysOptions(daysOptions);
     setWorkingHoursOptions(hoursOptions);
   };
@@ -185,36 +189,30 @@ const fetchDoctors = async (specializationName) => {
 
     const patientId = userData.patientId;
     if (selectedDay && selectedTime && patientId && selectedDoctor) {
-      try {
-        const availabilityResponse = await axios.get(
-          `http://localhost:8080/appointments/check-availability?doctorId=${selectedDoctor.id}&day=${selectedDay}&time=${selectedTime}`
-        );
+        try{
+            const appointmentData = {
+                doctorId: selectedDoctor.id,
+                patientId: patientId,
+                day: selectedDay,
+                time: selectedTime,
+            };
 
-        if (availabilityResponse.status === 200) {
-          const appointmentData = {
-            doctorId: selectedDoctor.id,
-            patientId: patientId,
-            day: selectedDay,
-            time: selectedTime,
-          };
+            const appointmentResponse = await axios.post(
+                "http://localhost:8080/appointments/create",
+                appointmentData
+            );
 
-          const appointmentResponse = await axios.post(
-            "http://localhost:8080/appointments/create",
-            appointmentData
-          );
-
-          if (appointmentResponse.status === 200) {
-            setAppointmentSuccess(true);
-            fetchAppointments(userData.patientId);
-          }
+            if (appointmentResponse.status === 200) {
+                setAppointmentSuccess(true);
+                fetchAppointments(userData.patientId);
+            }
+        }catch(error){
+            if (error.response && error.response.status === 400) {
+            alert("The doctor is not available at this time.");
+            } else {
+            alert("The appointment could not be saved. Please try again.");
+            }
         }
-      } catch (error) {
-        if (error.response && error.response.status === 400) {
-          alert("The doctor is not available at this time.");
-        } else {
-          alert("The appointment could not be saved. Please try again.");
-        }
-      }
     } else {
       alert("Please select a day and time or the patient ID is incorrect.");
     }
@@ -263,6 +261,28 @@ const fetchDoctors = async (specializationName) => {
       fetchAppointments(userData.patientId);
     }
   }, [userData]);
+
+
+    const fetchFilteredTimes = async () => {
+    if (selectedDoctor && !selectedDoctor.id) return;
+    try {
+      const response = await axios.post("http://localhost:8080/appointments/get-filtered-time", {
+        doctorId: selectedDoctor.id,
+        day: selectedDay,
+      });
+      setFilteredTime(response.data);
+    } catch (error) {
+      console.error("Error fetching filtered times:", error);
+    }
+  };
+
+  useEffect(()=>{
+    if(selectedDoctor && selectedDoctor.id && selectedDay){
+        fetchFilteredTimes();
+    }
+    setSelectedTime("");
+    setAppointmentSuccess(false);
+  }, [selectedDay])
 
   const panes = [
     {
@@ -414,31 +434,37 @@ const fetchDoctors = async (specializationName) => {
                     />
                   )}
 
-                  <Form.Field>
-                    <label>Select a day</label>
-                    <Dropdown
-                      placeholder="Select a day"
-                      fluid
-                      selection
-                      options={workingDaysOptions}
-                      onChange={(e, { value }) => setSelectedDay(value)}
-                      value={selectedDay}
-                    />
-                  </Form.Field>
+                <Form.Field>
+                    <label>Select a Day</label>
+                    <div className="time-selector-wrapper">
+                        {workingDaysOptions.map((option) => (
+                        <div
+                            key={option.value}
+                            className={`time-button ${selectedDay === option.value ? 'selected' : ''}`}
+                            onClick={() => setSelectedDay(option.value)}
+                        >
+                            {option.text}
+                        </div>
+                        ))}
+                    </div>
+                </Form.Field>
 
-                  <Form.Field>
+                <Form.Field>
                     <label>Select an hour</label>
-                    <Dropdown
-                      placeholder="Select an hour"
-                      fluid
-                      selection
-                      options={workingHoursOptions}
-                      onChange={(e, { value }) => setSelectedTime(value)}
-                      value={selectedTime}
-                    />
-                  </Form.Field>
+                    <div className="time-selector-wrapper">
+                        {filteredTime.map((option) => (
+                        <div
+                            key={option}
+                            className={`time-button ${selectedTime === option ? 'selected' : ''}`}
+                            onClick={() => setSelectedTime(option)}
+                        >
+                            {option}
+                        </div>
+                        ))}
+                    </div>
+                </Form.Field>
 
-                  <Button
+                <Button
                     type="submit"
                     fluid
                     primary

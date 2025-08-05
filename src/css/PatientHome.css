@@ -252,3 +252,31 @@ form {
   margin-top: -3rem;
   margin-bottom: -3rem;
 }
+
+/** css for book-appointment updates **/
+.time-selector-wrapper {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 48px;
+  background-color: #f9f9f9;
+}
+
+.time-button {
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #e0e0e0;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.time-button.selected {
+  background-color: #2185d0;
+  color: white;
+  font-weight: bold;
+}
