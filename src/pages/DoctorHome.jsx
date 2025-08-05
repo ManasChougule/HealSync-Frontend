@@ -65,7 +65,7 @@ export default function DoctorHome() {
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) {
       setDoctorName(`${user.firstName} ${user.lastName}`);
-      setDoctorId(user.doctorId); // Retrieving the doctor ID
+      setDoctorId(user.userId); // Retrieving the doctor ID
     }
   }, []);
 
@@ -218,7 +218,6 @@ export default function DoctorHome() {
       workingDays: doctorDetails.workingDays ? doctorDetails.workingDays.join(",") : "",
       workingHours:  doctorDetails.workingHours ? doctorDetails.workingHours.join(",") : "",
     };
-
     axios
       .put(`http://localhost:8080/doctors/update/${doctorId}`, updateData)
       .then((response) => {
