@@ -21,7 +21,7 @@ import {
   Chip,
   Stack,
 } from "@mui/material";
-import { Delete, Edit, CheckCircle, Cancel, AccessTime, Help, Logout } from "@mui/icons-material";
+import { Delete, Edit, CheckCircle, Cancel, AccessTime, Help, Logout, ArrowBack } from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -41,12 +41,19 @@ export default function AdminHome() {
   const [specializations, setSpecialization] = useState([]);
   const [hospitalName, setHospitalName] = useState("");
   const [hospitalCity, setHospitalCity] = useState("");
-  const [hospitalAddress, setHospitalAddress] = useState(""); // New state for hospital address
+  const [hospitalAddress, setHospitalAddress] = useState("");
   const [specializationName, setSpecializationName] = useState("");
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [selectedSpecialization, setSelectedSpecialization] = useState(null);
   const [openHospitalDialog, setOpenHospitalDialog] = useState(false);
   const [openSpecializationDialog, setOpenSpecializationDialog] = useState(false);
+
+  // New states for Ambulance management
+  const [ambulances, setAmbulances] = useState([]);
+  const [selectedAmbulance, setSelectedAmbulance] = useState(null);
+  const [openAmbulanceDialog, setOpenAmbulanceDialog] = useState(false);
+  const [ambulanceNumber, setAmbulanceNumber] = useState("");
+  const [ambulanceLocation, setAmbulanceLocation] = useState("");
 
   // Load users
   useEffect(() => {
@@ -104,6 +111,8 @@ export default function AdminHome() {
       });
   }, []);
 
+
+
   const handleEdit = (user) => {
     setSelectedUser (user);
     setOpen(true);
@@ -156,6 +165,10 @@ export default function AdminHome() {
     localStorage.clear();
     toast.success("Logged out successfully!");
     navigate("/");
+  };
+
+  const handleBack = () => {
+    navigate(-1); // Navigates to the previous page in the history stack
   };
 
   const getStatusIcon = (status) => {
@@ -214,20 +227,19 @@ export default function AdminHome() {
   );
 
   const handleHospitalSubmit = () => {
-    if (!hospitalName || !hospitalCity || !hospitalAddress) { // Check for address
+    if (!hospitalName || !hospitalCity || !hospitalAddress) {
       toast.error("Please fill all fields");
       return;
     }
     setLoading(true);
     axios
-      .post("http://localhost:8080/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress }) // Include address
+      .post("http://localhost:8080/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress })
       .then(() => {
         toast.success("Hospital added successfully!");
         setHospitalName("");
         setHospitalCity("");
-        setHospitalAddress(""); // Reset address
+        setHospitalAddress("");
         setLoading(false);
-        // Reload hospitals
         axios.get("http://localhost:8080/hospitals/all").then((response) => {
           setHospitals(response.data);
         });
@@ -250,7 +262,6 @@ export default function AdminHome() {
         toast.success("Specialization added successfully!");
         setSpecializationName("");
         setLoading(false);
-        // Reload specializations
         axios.get("http://localhost:8080/specializations/all").then((response) => {
           setSpecialization(response.data);
         });
@@ -261,14 +272,12 @@ export default function AdminHome() {
       });
   };
 
-  // Define the handleEditSpecialization function
   const handleEditSpecialization = (specialization) => {
     setSelectedSpecialization(specialization);
     setSpecializationName(specialization.name);
-    setOpenSpecializationDialog(true); // Open the specialization edit dialog
+    setOpenSpecializationDialog(true);
   };
 
-  // Define the handleDeleteSpecialization function
   const handleDeleteSpecialization = (specializationId) => {
     if (window.confirm("Are you sure you want to delete this specialization?")) {
       setLoading(true);
@@ -286,16 +295,14 @@ export default function AdminHome() {
     }
   };
 
-  // Define the handleEditHospital function
   const handleEditHospital = (hospital) => {
     setSelectedHospital(hospital);
     setHospitalName(hospital.name);
     setHospitalCity(hospital.city);
-    setHospitalAddress(hospital.address); // Set address for editing
-    setOpenHospitalDialog(true); // Open the hospital edit dialog
+    setHospitalAddress(hospital.address);
+    setOpenHospitalDialog(true);
   };
 
-  // Define the handleDeleteHospital function
   const handleDeleteHospital = (hospitalId) => {
     if (window.confirm("Are you sure you want to delete this hospital?")) {
       setLoading(true);
@@ -313,23 +320,21 @@ export default function AdminHome() {
     }
   };
 
-  // Handle submission for editing a hospital
   const handleSubmitHospital = () => {
-    if (!hospitalName || !hospitalCity || !hospitalAddress) { // Check for address
+    if (!hospitalName || !hospitalCity || !hospitalAddress) {
       toast.error("Please fill all fields");
       return;
     }
     setLoading(true);
     axios
-      .put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, { name: hospitalName, city: hospitalCity, address: hospitalAddress }) // Include address
+      .put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, { name: hospitalName, city: hospitalCity, address: hospitalAddress })
       .then(() => {
         toast.success("Hospital updated successfully!");
         setLoading(false);
-        // Reload hospitals
         axios.get("http://localhost:8080/hospitals/all").then((response) => {
           setHospitals(response.data);
         });
-        setOpenHospitalDialog(false); // Close the dialog
+        setOpenHospitalDialog(false);
       })
       .catch(() => {
         toast.error("Error updating hospital");
@@ -337,7 +342,6 @@ export default function AdminHome() {
       });
   };
 
-  // Handle submission for editing a specialization
   const handleSubmitSpecialization = () => {
     if (!specializationName) {
       toast.error("Please fill all fields");
@@ -349,11 +353,10 @@ export default function AdminHome() {
       .then(() => {
         toast.success("Specialization updated successfully!");
         setLoading(false);
-        // Reload specializations
         axios.get("http://localhost:8080/specializations/all").then((response) => {
           setSpecialization(response.data);
         });
-        setOpenSpecializationDialog(false); // Close the dialog
+        setOpenSpecializationDialog(false);
       })
       .catch(() => {
         toast.error("Error updating specialization");
@@ -361,14 +364,107 @@ export default function AdminHome() {
       });
   };
 
+  // Ambulance Handlers
+  const handleAddAmbulance = () => {
+    if (!ambulanceNumber || !ambulanceLocation) {
+      toast.error("Please fill all ambulance fields");
+      return;
+    }
+    setLoading(true);
+    axios
+      .post("http://localhost:8080/ambulances/add", { number: ambulanceNumber, location: ambulanceLocation })
+      .then(() => {
+        toast.success("Ambulance added successfully!");
+        setAmbulanceNumber("");
+        setAmbulanceLocation("");
+        setLoading(false);
+        axios.get("http://localhost:8080/ambulances/all").then((response) => {
+          setAmbulances(response.data);
+        });
+      })
+      .catch(() => {
+        toast.error("Error adding ambulance");
+        setLoading(false);
+      });
+  };
+
+  const handleEditAmbulance = (ambulance) => {
+    setSelectedAmbulance(ambulance);
+    setAmbulanceNumber(ambulance.number);
+    setAmbulanceLocation(ambulance.location);
+    setOpenAmbulanceDialog(true);
+  };
+
+  const handleDeleteAmbulance = (ambulanceId) => {
+    if (window.confirm("Are you sure you want to delete this ambulance?")) {
+      setLoading(true);
+      axios
+        .delete(`http://localhost:8080/ambulances/delete/${ambulanceId}`)
+        .then(() => {
+          toast.success("Ambulance deleted successfully!");
+          setAmbulances(ambulances.filter((a) => a.id !== ambulanceId));
+          setLoading(false);
+        })
+        .catch(() => {
+          toast.error("Error deleting ambulance");
+          setLoading(false);
+        });
+    }
+  };
+
+  const handleSubmitAmbulance = () => {
+    if (!ambulanceNumber || !ambulanceLocation) {
+      toast.error("Please fill all ambulance fields");
+      return;
+    }
+    setLoading(true);
+    axios
+      .put(`http://localhost:8080/ambulances/update/${selectedAmbulance.id}`, { number: ambulanceNumber, location: ambulanceLocation })
+      .then(() => {
+        toast.success("Ambulance updated successfully!");
+        setLoading(false);
+        axios.get("http://localhost:8080/ambulances/all").then((response) => {
+          setAmbulances(response.data);
+        });
+        setOpenAmbulanceDialog(false);
+      })
+      .catch(() => {
+        toast.error("Error updating ambulance");
+        setLoading(false);
+      });
+  };
+
+  const renderAmbulances = () => (
+    <List>
+      {ambulances.map((ambulance) => (
+        <ListItem key={ambulance.id} sx={styles.listItem}>
+          <ListItemText primary={`Number: ${ambulance.number}`} secondary={`Location: ${ambulance.location}`} />
+          <Stack direction="row" spacing={1}>
+            <Button variant="contained" color="primary" onClick={() => handleEditAmbulance(ambulance)}>
+              <Edit />
+            </Button>
+            <Button variant="contained" color="error" onClick={() => handleDeleteAmbulance(ambulance.id)}>
+              <Delete />
+            </Button>
+          </Stack>
+        </ListItem>
+      ))}
+    </List>
+  );
+
   return (
     <Container sx={{ mt: 4 }}>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <Typography variant="h4">Admin Dashboard</Typography>
-          <Button variant="outlined" color="error" onClick={handleLogout} startIcon={<Logout />}>
-            Logout
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" color="primary" onClick={handleBack} startIcon={<ArrowBack />}>
+              Back
+            </Button>
+            <Button variant="outlined" color="error" onClick={handleLogout} startIcon={<Logout />}>
+              Logout
+            </Button>
+          </Stack>
         </Grid>
         <Box sx={{ mt: 2 }}>
           <Tabs value={activeTab} onChange={(e, newVal) => setActiveTab(newVal)}>
@@ -377,8 +473,10 @@ export default function AdminHome() {
             <Tab label="Appointments" />
             <Tab label="Hospitals" />
             <Tab label="Add Hospital" />
-            <Tab label="specializations" />
-            <Tab label="Add specialization" />
+            <Tab label="Specializations" />
+            <Tab label="Add Specialization" />
+            {/* Removed <Tab label="Ambulances" /> */}
+            <Tab label="Add Ambulance" /> {/* This tab is now at index 7 */}
           </Tabs>
           <Box sx={{ mt: 2 }}>
             {loading && <CircularProgress />}
@@ -389,7 +487,7 @@ export default function AdminHome() {
               <List>
                 {hospitals.map((hospital) => (
                   <ListItem key={hospital.id} sx={styles.listItem}>
-                    <ListItemText primary={hospital.name} secondary={`${hospital.city} | ${hospital.address}`} /> {/* Display address */}
+                    <ListItemText primary={hospital.name} secondary={`${hospital.city} | ${hospital.address}`} />
                     <Stack direction="row" spacing={1}>
                       <Button variant="contained" color="primary" onClick={() => handleEditHospital(hospital)}>
                         <Edit />
@@ -400,6 +498,9 @@ export default function AdminHome() {
                     </Stack>
                   </ListItem>
                 ))}
+                {/* Display ambulances list below hospitals when on Hospitals tab */}
+                <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Ambulances</Typography>
+                {renderAmbulances()}
               </List>
             )}
             {activeTab === 4 && (
@@ -410,7 +511,7 @@ export default function AdminHome() {
                   onChange={(e) => setHospitalName(e.target.value)}
                   fullWidth
                   margin="normal"
-                  required // Ensure the field is required
+                  required
                 />
                 <TextField
                   label="City"
@@ -418,15 +519,15 @@ export default function AdminHome() {
                   onChange={(e) => setHospitalCity(e.target.value)}
                   fullWidth
                   margin="normal"
-                  required // Ensure the field is required
+                  required
                 />
                 <TextField
-                  label="Address" // New address field
+                  label="Address"
                   value={hospitalAddress}
                   onChange={(e) => setHospitalAddress(e.target.value)}
                   fullWidth
                   margin="normal"
-                  required // Ensure the field is required
+                  required
                 />
                 <Button type="submit" variant="contained" color="primary">
                   Add Hospital
@@ -435,7 +536,7 @@ export default function AdminHome() {
             )}
             {activeTab === 5 && (
               <Box>
-                <Typography variant="h6">specializations</Typography>
+                <Typography variant="h6">Specializations</Typography>
                 <List>
                   {specializations.map((specialization) => (
                     <ListItem key={specialization.id} sx={styles.listItem}>
@@ -456,15 +557,39 @@ export default function AdminHome() {
             {activeTab === 6 && (
               <Box component="form" onSubmit={handleSpecializationSubmit}>
                 <TextField
-                  label="specialization Name"
+                  label="Specialization Name"
                   value={specializationName}
                   onChange={(e) => setSpecializationName(e.target.value)}
                   fullWidth
                   margin="normal"
-                  required // Ensure the field is required
+                  required
                 />
                 <Button type="submit" variant="contained" color="primary">
-                  Add specialization
+                  Add Specialization
+                </Button>
+              </Box>
+            )}
+            {/* activeTab === 7 now corresponds to "Add Ambulance" */}
+            {activeTab === 7 && (
+              <Box component="form" onSubmit={handleAddAmbulance}>
+                <TextField
+                  label="Ambulance Number"
+                  value={ambulanceNumber}
+                  onChange={(e) => setAmbulanceNumber(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
+                />
+                <TextField
+                  label="Ambulance Location"
+                  value={ambulanceLocation}
+                  onChange={(e) => setAmbulanceLocation(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
+                />
+                <Button type="submit" variant="contained" color="primary">
+                  Add Ambulance
                 </Button>
               </Box>
             )}
@@ -492,7 +617,7 @@ export default function AdminHome() {
           />
           <TextField
             margin="dense"
-            label="Address" // New address field for editing
+            label="Address"
             value={hospitalAddress}
             onChange={(e) => setHospitalAddress(e.target.value)}
             fullWidth
@@ -530,7 +655,36 @@ export default function AdminHome() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={open} onClose={handleClose}>
+      {/* Dialog for editing ambulances */}
+      <Dialog open={openAmbulanceDialog} onClose={() => setOpenAmbulanceDialog(false)}>
+        <DialogTitle>Edit Ambulance</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Ambulance Number"
+            value={ambulanceNumber}
+            onChange={(e) => setAmbulanceNumber(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            margin="dense"
+            label="Ambulance Location"
+            value={ambulanceLocation}
+            onChange={(e) => setAmbulanceLocation(e.target.value)}
+            fullWidth
+          />
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <Button variant="contained" color="primary" onClick={handleSubmitAmbulance}>
+              Save
+            </Button>
+            <Button variant="outlined" onClick={() => setOpenAmbulanceDialog(false)}>
+              Cancel
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+     <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
           <TextField
@@ -549,6 +703,23 @@ export default function AdminHome() {
             value={selectedUser ?.lastName || ""}
             onChange={handleChange}
           />
+          <TextField
+            margin="dense"
+            label="Email"
+            name="email"
+            type="email"
+            fullWidth
+            value={selectedUser ?.email || ""}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Role"
+            name="role"
+            fullWidth
+            value={selectedUser ?.role || ""}
+            onChange={handleChange}
+          />
 
           <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
             <Button variant="contained" color="primary" onClick={handleSubmit}>
@@ -562,17 +733,6 @@ export default function AdminHome() {
       </Dialog>
 
       <ToastContainer position="bottom-center" autoClose={3000} />
-      <Box sx={{ mt: 2 }}>
-        <Button
-  component={Link}
-  to="/admin/add-ambulance"
-  variant="contained"
-  sx={{ backgroundColor: 'red', color: 'white' }} // Custom red color
->
-  Add Ambulance
-</Button>
-
-      </Box>
     </Container>
   );
 }

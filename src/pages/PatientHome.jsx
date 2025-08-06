@@ -1,28 +1,40 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Image,
-  Container,
-  Segment,
-  Header,
-  Dropdown,
-  Card,
-  Button,
-  Form,
-  Message,
-  Tab,
-  Label,
-  Icon,
-  Dimmer,
-  Loader,
-  Modal,
-} from "semantic-ui-react";
+import { useNavigate } from "react-router-dom";
+
+// React-Bootstrap Imports
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Card from 'react-bootstrap/Card';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import Alert from 'react-bootstrap/Alert';
+import Spinner from 'react-bootstrap/Spinner';
+import Modal from 'react-bootstrap/Modal';
+import Nav from 'react-bootstrap/Nav';
+import Tab from 'react-bootstrap/Tab';
+
+// Material-UI Imports (for specific components like Select/TextField if needed, or Typography)
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box'; // For flexbox utilities
+import CircularProgress from '@mui/material/CircularProgress'; // For loading indicator
+
+// Icons (using react-icons for a mix, or you can use Material-UI Icons)
+import { FaStethoscope, FaCalendarAlt, FaAmbulance, FaArrowLeft, FaSignOutAlt, FaEdit, FaTrashAlt } from 'react-icons/fa';
+
+// Local Assets
 import HealSync from "../assets/HealSync.png";
-import { CSSTransition } from "react-transition-group";
-import "../css/PatientHome.css";
-import health from "../assets/health.png";
+import health from "../assets/health.png"; // Assuming these are still used for images
 import timetable from "../assets/timetable.png";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
+import ambulanceIcon from "../assets/ambulance.png";
+
+// You might need to adjust or remove this if all styling is handled by RB/MUI
+// import "../css/PatientHome.css";
 
 const PatientHome = () => {
   const [userName, setUserName] = useState("");
@@ -33,18 +45,25 @@ const PatientHome = () => {
   const [selectedDay, setSelectedDay] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [appointmentSuccess, setAppointmentSuccess] = useState(false);
+  const [appointmentMessage, setAppointmentMessage] = useState("");
   const [appointments, setAppointments] = useState([]);
   const [specializationOptions, setSpecializationOptions] = useState([]);
   const [workingDaysOptions, setWorkingDaysOptions] = useState([]);
   const [workingHoursOptions, setWorkingHoursOptions] = useState([]);
-  const [loading, setLoading] = useState(false); // Animation for page loading
+  const [loading, setLoading] = useState(false);
 
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editAppointment, setEditAppointment] = useState(null); // Appointment details to be edited
+  const [editAppointment, setEditAppointment] = useState(null);
   const [editDay, setEditDay] = useState("");
   const [editTime, setEditTime] = useState("");
 
-  const navigate = useNavigate(); // Initialize useNavigate hook
+  const [ambulanceNumber, setAmbulanceNumber] = useState("");
+  const [ambulanceLocation, setAmbulanceLocation] = useState("");
+  const [ambulanceNotes, setAmbulanceNotes] = useState("");
+  const [ambulanceBookingSuccess, setAmbulanceBookingSuccess] = useState(false);
+  const [ambulanceMessage, setAmbulanceMessage] = useState("");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const userDataFromStorage = JSON.parse(localStorage.getItem("user"));
@@ -53,11 +72,13 @@ const PatientHome = () => {
       setUserName(
         `${userDataFromStorage.firstName} ${userDataFromStorage.lastName}`
       );
+    } else {
+      navigate("/");
     }
-  }, []);
+  }, [navigate]);
 
   const fetchDoctors = async (specializationName) => {
-    setLoading(true); // Start loading animation
+    setLoading(true);
     try {
       const response = await axios.get(
         `http://localhost:8080/doctors/doctors?specializationName=${specializationName}`
@@ -65,16 +86,16 @@ const PatientHome = () => {
       setDoctors(response.data);
     } catch (error) {
       console.error("Error occurred while fetching doctors:", error);
+      alert("Failed to fetch doctors. Please try again later.");
     } finally {
-      setLoading(false); // Stop loading animation
+      setLoading(false);
     }
   };
 
-  // Open form when Edit button is clicked
   const handleEditAppointment = (appointment) => {
     setEditAppointment(appointment);
-    setEditDay(appointment.day); // Set default day to current appointment day
-    setEditTime(appointment.time); // Set default time to current appointment time
+    setEditDay(appointment.day);
+    setEditTime(appointment.time);
 
     const doctor = appointment.doctor;
     const daysOptions = doctor.workingDays
@@ -95,7 +116,7 @@ const PatientHome = () => {
     setWorkingDaysOptions(daysOptions);
     setWorkingHoursOptions(hoursOptions);
 
-    setEditModalOpen(true); // Open the form modal
+    setEditModalOpen(true);
   };
 
   useEffect(() => {
@@ -112,6 +133,7 @@ const PatientHome = () => {
         setSpecializationOptions(options);
       } catch (error) {
         console.error("Error occurred while fetching specializations:", error);
+        alert("Failed to fetch specializations. Please try again later.");
       }
     };
 
@@ -119,6 +141,10 @@ const PatientHome = () => {
   }, []);
 
   const fetchAppointments = async (patientId) => {
+    if (!patientId) {
+      console.warn("Patient ID is missing, cannot fetch appointments.");
+      return;
+    }
     try {
       const response = await axios.get(
         `http://localhost:8080/appointments/patient/${patientId}`
@@ -126,10 +152,12 @@ const PatientHome = () => {
       setAppointments(response.data);
     } catch (error) {
       console.error("An error occurred while fetching appointments:", error);
+      alert("Failed to fetch your appointments. Please try again.");
     }
   };
 
-  const handleSpecializationChange = (e, { value }) => {
+  const handleSpecializationChange = (e) => { // e is the event object
+    const value = e.target.value; // For MUI Select, value is directly on e.target.value
     setSpecialization(value);
     fetchDoctors(value);
   };
@@ -138,6 +166,8 @@ const PatientHome = () => {
     setSelectedDoctor(doctor);
     setSelectedDay("");
     setSelectedTime("");
+    setAppointmentSuccess(false);
+    setAppointmentMessage("");
 
     const daysOptions = doctor.workingDays
       ? doctor.workingDays.split(",").map((day) => ({
@@ -158,7 +188,23 @@ const PatientHome = () => {
     setWorkingHoursOptions(hoursOptions);
   };
 
+  const handleDaySelect = (day) => {
+    setSelectedDay(day);
+    setSelectedTime("");
+    setAppointmentSuccess(false);
+    setAppointmentMessage("");
+  };
+
+  const handleTimeSelect = (time) => {
+    setSelectedTime(time);
+    setAppointmentSuccess(false);
+    setAppointmentMessage("");
+  };
+
   const handleDeleteAppointment = async (appointmentId) => {
+    if (!window.confirm("Are you sure you want to delete this appointment?")) {
+      return;
+    }
     try {
       const response = await axios.delete(
         `http://localhost:8080/registration/appointments/delete/${appointmentId}`
@@ -176,94 +222,202 @@ const PatientHome = () => {
   };
 
   function getStatusColor(status) {
-    switch (status.toLowerCase()) {
+    switch ((status || "").toLowerCase()) {
       case "pending":
-        return "orange";
+        return "warning"; // Bootstrap variant
       case "confirmed":
-        return "green";
+        return "success"; // Bootstrap variant
       case "cancelled":
-        return "red";
+        return "danger"; // Bootstrap variant
       default:
-        return "grey"; // Default color
+        return "secondary"; // Bootstrap variant
     }
   }
 
   const handleAppointmentRequest = async () => {
-    if (!userData) {
-      alert("User information could not be loaded. Please log in.");
+    setAppointmentSuccess(false);
+    setAppointmentMessage("");
+
+    if (!userData || !userData.patientId) {
+      setAppointmentMessage("User information (Patient ID) could not be loaded. Please log in again.");
       return;
     }
 
     const patientId = userData.patientId;
-    if (selectedDay && selectedTime && patientId && selectedDoctor) {
-      try {
-        const availabilityResponse = await axios.get(
-          `http://localhost:8080/appointments/check-availability?doctorId=${selectedDoctor.id}&day=${selectedDay}&time=${selectedTime}`
+    if (!selectedDay || !selectedTime || !selectedDoctor) {
+      setAppointmentMessage("Please select a doctor, day, and time for your appointment.");
+      return;
+    }
+
+    try {
+      const availabilityCheckData = {
+        doctorId: selectedDoctor.id,
+        day: selectedDay,
+        time: selectedTime,
+      };
+      const availabilityResponse = await axios.post(
+        "http://localhost:8080/appointments/check-availability",
+        availabilityCheckData
+      );
+
+      if (availabilityResponse.data && availabilityResponse.data.includes("Doctor is available")) {
+        const appointmentData = {
+          doctorId: selectedDoctor.id,
+          patientId: patientId,
+          day: selectedDay,
+          time: selectedTime,
+        };
+
+        const appointmentResponse = await axios.post(
+          "http://localhost:8080/appointments/create",
+          appointmentData
         );
 
-        if (availabilityResponse.status === 200) {
-          const appointmentData = {
-            doctorId: selectedDoctor.id,
-            patientId: patientId,
-            day: selectedDay,
-            time: selectedTime,
-          };
-
-          const appointmentResponse = await axios.post(
-            "http://localhost:8080/appointments/create",
-            appointmentData
-          );
-
-          if (appointmentResponse.status === 200) {
-            setAppointmentSuccess(true);
-            fetchAppointments(userData.patientId);
-          }
+        if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
+          setAppointmentSuccess(true);
+          setAppointmentMessage("Your appointment has been saved successfully!");
+          fetchAppointments(userData.patientId);
+          setSelectedDoctor(null);
+          setSpecialization("");
+          setSelectedDay("");
+          setSelectedTime("");
         }
-      } catch (error) {
-        if (error.response && error.response.status === 400) {
-          alert("The doctor is not available at this time.");
-        } else {
-          alert("The appointment could not be saved. Please try again.");
-        }
+      } else {
+          setAppointmentSuccess(false);
+          setAppointmentMessage(availabilityResponse.data || "Doctor is not available at this time.");
       }
-    } else {
-      alert("Please select a day and time or the patient ID is incorrect.");
+    } catch (error) {
+      console.error("Error during appointment request:", error);
+      setAppointmentSuccess(false);
+      let msg = "An unknown error occurred. Please try again.";
+      if (error.response) {
+        if (typeof error.response.data === 'string') {
+            msg = error.response.data;
+        } else if (error.response.data && error.response.data.message) {
+            msg = error.response.data.message;
+        } else if (error.response.data) {
+            msg = JSON.stringify(error.response.data);
+        }
+        setAppointmentMessage(`Booking failed: ${msg}`);
+      } else if (error.request) {
+        setAppointmentMessage("No response from server. Please check your network connection or try again later.");
+      } else {
+        setAppointmentMessage(`An error occurred: ${error.message}. Please try again.`);
+      }
     }
   };
 
   const handleUpdateAppointment = async () => {
     if (!editAppointment || !editDay || !editTime) {
-      alert("Please select a day and time.");
+      alert("Please select a day and time for the update.");
       return;
     }
 
     try {
-      // Availability check
       const availabilityResponse = await axios.get(
         `http://localhost:8080/appointments/check-availability?doctorId=${editAppointment.doctor.id}&day=${editDay}&time=${editTime}`
       );
 
-      if (availabilityResponse.status === 200) {
-        // Update appointment if available
+      if (availabilityResponse.data === true) {
         const response = await axios.put(
           `http://localhost:8080/appointments/update/${editAppointment.id}?day=${editDay}&time=${editTime}`
         );
 
         if (response.status === 200) {
           alert("Appointment successfully updated.");
-          setEditModalOpen(false); // Close the form
-          fetchAppointments(userData.patientId); // Reload updated appointments
+          setEditModalOpen(false);
+          fetchAppointments(userData.patientId);
         }
+      } else {
+          alert("The doctor is not available at this time for the update.");
       }
     } catch (error) {
       console.error("An error occurred while updating the appointment:", error);
-      alert("The doctor is not available at this time.");
+      let errorMessage = "An unknown error occurred during update. Please try again.";
+      if (error.response) {
+        if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+        } else if (error.response.data && error.response.data.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.response.data) {
+            errorMessage = JSON.stringify(error.response.data);
+        }
+        if (error.response.status === 400) {
+          alert(`Update failed: ${errorMessage || "The doctor is not available at this time for the update."}`);
+        } else {
+          alert(`An unexpected error occurred during update (Status: ${error.response.status}): ${errorMessage}`);
+        }
+      } else if (error.request) {
+        alert("No response from server during update. Please check your network connection.");
+      } else {
+        alert(`An error occurred during update: ${error.message}.`);
+      }
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("user"); // Clear user data from local storage
-    navigate("/"); // Redirect to login page
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleAmbulanceBooking = async () => {
+    setAmbulanceBookingSuccess(false);
+    setAmbulanceMessage("");
+
+    if (!userData || !userData.patientId) {
+      setAmbulanceMessage("User information (Patient ID) could not be loaded. Please log in again.");
+      return;
+    }
+
+    const patientId = userData.patientId;
+    if (!ambulanceLocation) {
+      setAmbulanceMessage("Please provide your current location to book an ambulance.");
+      return;
+    }
+
+    try {
+      const ambulanceData = {
+        patientId: patientId,
+        ambulanceNumber: ambulanceNumber,
+        location: ambulanceLocation,
+        notes: ambulanceNotes,
+      };
+
+      const response = await axios.post(
+        "http://localhost:8080/api/ambulance-bookings/book",
+        ambulanceData
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        setAmbulanceBookingSuccess(true);
+        setAmbulanceMessage("Your ambulance request has been sent successfully!");
+        setAmbulanceNumber("");
+        setAmbulanceLocation("");
+        setAmbulanceNotes("");
+      }
+    } catch (error) {
+      console.error("Error during ambulance booking:", error);
+      setAmbulanceBookingSuccess(false);
+      let msg = "An unknown error occurred. Please try again.";
+      if (error.response) {
+        if (typeof error.response.data === 'string') {
+            msg = error.response.data;
+        } else if (error.response.data && error.response.data.message) {
+            msg = error.response.data.message;
+        } else if (error.response.data) {
+            msg = JSON.stringify(error.response.data);
+        }
+        setAmbulanceMessage(`Failed to book ambulance: ${msg}`);
+      } else if (error.request) {
+        setAmbulanceMessage("No response from server for ambulance booking. Please check your network connection.");
+      } else {
+        setAmbulanceMessage(`An error occurred during ambulance request: ${error.message}.`);
+      }
+    }
   };
 
   useEffect(() => {
@@ -275,465 +429,356 @@ const PatientHome = () => {
   }, [specialization]);
 
   useEffect(() => {
-    if (userData) {
+    if (userData && userData.patientId) {
       fetchAppointments(userData.patientId);
     }
   }, [userData]);
 
-  const panes = [
-    {
-      menuItem: "Search Appointment",
-      render: () => (
-        <Tab.Pane attached={false}>
-          <Segment raised>
-            <Header
-              as="h2"
-              textAlign="center"
-              style={{ marginBottom: "20px" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginBottom: "20px",
-                }}
-              >
-                Search Appointment
-                <img
-                  src={health}
-                  alt="stethoscope logo"
-                  style={{ width: "49px", height: "40px" }}
-                />
-              </div>
-            </Header>
+  return (
+    <Container className="my-4">
+      {/* Header Row */}
+      <Row className="align-items-center mb-3">
+        <Col xs={4} className="text-start">
+          <img src={HealSync} alt="HealSync Logo" style={{ maxWidth: "150px" }} />
+        </Col>
+        <Col xs={4} className="text-center">
+          <Typography variant="h4" component="h1" className="mb-0">
+            Welcome, {userName}!
+          </Typography>
+        </Col>
+        <Col xs={4} className="text-end">
+          <Button variant="secondary" onClick={handleBack} className="me-2">
+            <FaArrowLeft className="me-1" /> Back
+          </Button>
+          <Button variant="danger" onClick={handleLogout}>
+            <FaSignOutAlt className="me-1" /> Logout
+          </Button>
+        </Col>
+      </Row>
 
-            <Dropdown
-              placeholder="Select Clinic"
-              fluid
-              selection
-              options={specializationOptions}
-              onChange={handleSpecializationChange}
-              value={specialization}
-              style={{ fontSize: "16px", marginBottom: "20px" }}
-            />
+      {/* Tabs */}
+      <Tab.Container defaultActiveKey="searchAppointment">
+        <Nav variant="tabs" className="mb-3">
+          <Nav.Item>
+            <Nav.Link eventKey="searchAppointment">Search Appointment</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="yourAppointments">Your Appointments</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="bookAmbulance">Book Ambulance</Nav.Link>
+          </Nav.Item>
+        </Nav>
 
-            {loading ? (
-              <Dimmer active inverted>
-                <Loader>Loading Doctors...</Loader>
-              </Dimmer>
-            ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                }}
-              >
-                {doctors.length === 0 ? (
-                  <Message>No doctor found</Message>
+        <Tab.Content>
+          {/* Search Appointment Tab */}
+          <Tab.Pane eventKey="searchAppointment">
+            <Card className="shadow-sm p-4 mb-4">
+              <Card.Body>
+                <Typography variant="h5" component="h2" className="text-center mb-4">
+                  Search Appointment <img src={health} alt="stethoscope logo" style={{ width: "40px", height: "35px", marginLeft: "10px" }} />
+                </Typography>
+
+                <FormControl fullWidth margin="normal">
+                  <InputLabel id="specialization-select-label">Select Clinic</InputLabel>
+                  <Select
+                    labelId="specialization-select-label"
+                    id="specialization-select"
+                    value={specialization}
+                    label="Select Clinic"
+                    onChange={handleSpecializationChange}
+                  >
+                    {specializationOptions.map((option) => (
+                      <MenuItem key={option.key} value={option.value}>
+                        {option.text}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {loading ? (
+                  <Box className="d-flex justify-content-center my-4">
+                    <CircularProgress />
+                    <Typography variant="body1" className="ms-2">Loading Doctors...</Typography>
+                  </Box>
                 ) : (
-                  doctors.map((doctor) => (
-                    <CSSTransition
-                      key={doctor.id}
-                      timeout={500}
-                      classNames="doctor-card"
-                    >
-                      <Card
-                        raised
-                        fluid
-                        style={{
-                          margin: "20px",
-                          cursor: "pointer",
-                          boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
-                          transition:
-                            "transform 0.3s ease, box-shadow 0.3s ease",
-                        }}
-                        onClick={() => handleDoctorSelect(doctor)}
-                      >
-                        <Card.Content>
-                          <Card.Header
-                            style={{
-                              fontSize: "1.5em",
-                              fontWeight: "bold",
-                              color: "#1b6d2f",
-                            }}
+                  <Row xs={1} md={2} lg={3} className="g-4 mt-3">
+                    {doctors.length === 0 ? (
+                      <Col><Alert variant="info">No doctor found for this specialization.</Alert></Col>
+                    ) : (
+                      doctors.map((doctor) => (
+                        <Col key={doctor.id}>
+                          <Card
+                            className="h-100 shadow-sm doctor-card"
+                            style={{ cursor: "pointer", transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
+                            onClick={() => handleDoctorSelect(doctor)}
                           >
-                            {doctor.user.firstName} {doctor.user.lastName}
-                          </Card.Header>
-                          <Card.Meta
-                            style={{
-                              fontSize: "1.1em",
-                              color: "#555",
-                              marginBottom: "10px",
-                            }}
-                          >
-                            {doctor.specialization.name}
-                          </Card.Meta>
-                          <Card.Description>
-                            <p style={{ color: "#333", fontSize: "1em" }}>
-                              <strong>Hospital:</strong>{" "}
-                              {doctor.hospital ? doctor.hospital.name : null}
-                            </p>
-                            <p style={{ color: "#333", fontSize: "1em" }}>
-                              <strong>Working Days:</strong>{" "}
-                              {doctor.workingDays}
-                            </p>
-                            <p style={{ color: "#333", fontSize: "1em" }}>
-                              <strong>Working Hours:</strong>{" "}
-                              {doctor.workingHours}
-                            </p>
-                          </Card.Description>
-                        </Card.Content>
-                        <Card.Content extra>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "#1b6d2f",
-                                fontWeight: "bold",
-                              }}
-                            >
-                              Request Appointment
-                            </span>
-                            <Icon name="arrow right" color="green" />
-                          </div>
-                        </Card.Content>
-                      </Card>
-                    </CSSTransition>
-                  ))
+                            <Card.Body>
+                              <Card.Title className="text-success fw-bold fs-4">
+                                Dr. {doctor.user.firstName} {doctor.user.lastName}
+                              </Card.Title>
+                              <Card.Subtitle className="mb-2 text-muted fs-6">
+                                {doctor.specialization.name}
+                              </Card.Subtitle>
+                              <Card.Text>
+                                <strong>Hospital:</strong> {doctor.hospital ? doctor.hospital.name : "N/A"}<br />
+                                <strong>Working Days:</strong> {doctor.workingDays || "N/A"}<br />
+                                <strong>Working Hours:</strong> {doctor.workingHours || "N/A"}
+                              </Card.Text>
+                            </Card.Body>
+                            <Card.Footer className="d-flex justify-content-between align-items-center text-success fw-bold">
+                              Request Appointment <FaArrowLeft className="rotate-180" />
+                            </Card.Footer>
+                          </Card>
+                        </Col>
+                      ))
+                    )}
+                  </Row>
                 )}
-              </div>
-            )}
 
-            {selectedDoctor && (
-              <div>
-                <Header
-                  as="h3"
-                  textAlign="center"
-                  style={{ marginBottom: "20px" }}
-                >
-                  Make an Appointment with Dr. {selectedDoctor.user.firstName}{" "}
-                  {selectedDoctor.user.lastName}
-                </Header>
+                {selectedDoctor && (
+                  <Card className="shadow-sm p-4 mt-4">
+                    <Card.Body>
+                      <Typography variant="h6" component="h3" className="text-center mb-4">
+                        Make an Appointment with Dr. {selectedDoctor.user.firstName}{" "}
+                        {selectedDoctor.user.lastName}
+                      </Typography>
 
-                <Form
-                  success={appointmentSuccess}
-                  warning={!appointmentSuccess}
-                  size="large"
-                >
-                  {appointmentSuccess && (
-                    <Message
-                      success
-                      header="Appointment Request Sent"
-                      content="Your appointment has been saved successfully."
-                    />
+                      {appointmentMessage && (
+                        <Alert variant={appointmentSuccess ? "success" : "warning"}>
+                          {appointmentSuccess ? "Appointment Request Sent" : "Appointment Failed"}: {appointmentMessage}
+                        </Alert>
+                      )}
+
+                      <Form>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Select a day</Form.Label>
+                          <div className="d-flex flex-wrap gap-2">
+                            {workingDaysOptions.length > 0 ? (
+                              workingDaysOptions.map((option) => (
+                                <Button
+                                  key={option.value}
+                                  variant={selectedDay === option.value ? "primary" : "light"}
+                                  onClick={() => handleDaySelect(option.value)}
+                                >
+                                  {option.text}
+                                </Button>
+                              ))
+                            ) : (
+                              <Alert variant="info" className="w-100">No working days available for this doctor.</Alert>
+                            )}
+                          </div>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                          <Form.Label>Select an hour</Form.Label>
+                          <div className="d-flex flex-wrap gap-2">
+                            {workingHoursOptions.length > 0 ? (
+                              workingHoursOptions.map((option) => (
+                                <Button
+                                  key={option.value}
+                                  variant={selectedTime === option.value ? "primary" : "light"}
+                                  onClick={() => handleTimeSelect(option.value)}
+                                >
+                                  {option.text}
+                                </Button>
+                              ))
+                            ) : (
+                              <Alert variant="info" className="w-100">No working hours available for this doctor.</Alert>
+                            )}
+                          </div>
+                        </Form.Group>
+
+                        <Button
+                          variant="primary"
+                          className="w-100 mt-3"
+                          onClick={handleAppointmentRequest}
+                          disabled={!selectedDay || !selectedTime}
+                        >
+                          Book Appointment
+                        </Button>
+                      </Form>
+                    </Card.Body>
+                  </Card>
+                )}
+              </Card.Body>
+            </Card>
+          </Tab.Pane>
+
+          {/* Your Appointments Tab */}
+          <Tab.Pane eventKey="yourAppointments">
+            <Card className="shadow-sm p-4 mb-4">
+              <Card.Body>
+                <Typography variant="h5" component="h2" className="text-center mb-4">
+                  Your Appointments <img src={timetable} alt="timetable logo" style={{ width: "40px", height: "35px", marginLeft: "10px" }} />
+                </Typography>
+
+                {appointments.length === 0 ? (
+                  <Alert variant="info">No appointments found</Alert>
+                ) : (
+                  <Row xs={1} md={2} lg={3} className="g-4">
+                    {appointments.map((appointment) => (
+                      <Col key={appointment.id}>
+                        <Card className="h-100 shadow-sm appointment-card">
+                          <Card.Body>
+                            <Card.Title className="fs-5">
+                              {appointment.day} at {appointment.time}
+                            </Card.Title>
+                            <Card.Text>
+                              <strong>Doctor:</strong> Dr.{" "}
+                              {appointment.doctor.user.firstName}{" "}
+                              {appointment.doctor.user.lastName}<br />
+                              <strong>Hospital:</strong>{" "}
+                              {appointment.doctor.hospital ? appointment.doctor.hospital.name : "N/A"}<br />
+                              <strong>Clinic:</strong>{" "}
+                              {appointment.doctor.specialization ? appointment.doctor.specialization.name : "N/A"}
+                            </Card.Text>
+                          </Card.Body>
+                          <Card.Footer className="d-flex justify-content-between align-items-center">
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDeleteAppointment(appointment.id)}
+                            >
+                              <FaTrashAlt />
+                            </Button>
+                            <Button
+                              variant="info"
+                              size="sm"
+                              onClick={() => handleEditAppointment(appointment)}
+                            >
+                              <FaEdit />
+                            </Button>
+                            <span className={`badge bg-${getStatusColor(appointment.status)}`}>
+                              {appointment.status}
+                            </span>
+                          </Card.Footer>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+              </Card.Body>
+            </Card>
+          </Tab.Pane>
+
+          {/* Book Ambulance Tab */}
+          <Tab.Pane eventKey="bookAmbulance">
+            <Card className="shadow-sm p-4 mb-4">
+              <Card.Body>
+                <Typography variant="h5" component="h2" className="text-center mb-4">
+                  Book Ambulance <img src={ambulanceIcon} alt="ambulance logo" style={{ width: "40px", height: "35px", marginLeft: "10px" }} />
+                </Typography>
+
+                <Form>
+                  {ambulanceMessage && (
+                    <Alert variant={ambulanceBookingSuccess ? "success" : "warning"}>
+                      {ambulanceBookingSuccess ? "Ambulance Request Sent" : "Ambulance Request Failed"}: {ambulanceMessage}
+                    </Alert>
                   )}
 
-                  <Form.Field>
-  <label>Select a day</label>
-  <div style={{ marginBottom: "10px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-    {workingDaysOptions.map((option) => (
-      <Button
-        key={option.value}
-        active={selectedDay === option.value}
-        onClick={() => setSelectedDay(option.value)}
-        style={{
-          backgroundColor: selectedDay === option.value ? "#2185d0" : "#ccc",
-          color: selectedDay === option.value ? "white" : "black",
-        }}
-      >
-        {option.text}
-      </Button>
-    ))}
-  </div>
-</Form.Field>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Ambulance Number (Optional)</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="e.g., AB1234"
+                      value={ambulanceNumber}
+                      onChange={(e) => setAmbulanceNumber(e.target.value)}
+                    />
+                  </Form.Group>
 
-<Form.Field>
-  <label>Select an hour</label>
-  <div style={{ marginBottom: "10px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-    {workingHoursOptions.map((option) => (
-      <Button
-        key={option.value}
-        active={selectedTime === option.value}
-        onClick={() => setSelectedTime(option.value)}
-        style={{
-          backgroundColor: selectedTime === option.value ? "#2185d0" : "#ccc",
-          color: selectedTime === option.value ? "white" : "black",
-        }}
-      >
-        {option.text}
-      </Button>
-    ))}
-  </div>
-</Form.Field>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Current Location <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="e.g., 123 Main St, City"
+                      value={ambulanceLocation}
+                      onChange={(e) => { setAmbulanceLocation(e.target.value); setAmbulanceBookingSuccess(false); setAmbulanceMessage(""); }}
+                      required
+                    />
+                  </Form.Group>
 
+                  <Form.Group className="mb-3">
+                    <Form.Label>Additional Notes (Optional)</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={3}
+                      placeholder="e.g., Patient has difficulty breathing."
+                      value={ambulanceNotes}
+                      onChange={(e) => setAmbulanceNotes(e.target.value)}
+                    />
+                  </Form.Group>
 
                   <Button
-                    type="submit"
-                    fluid
-                    primary
-                    onClick={handleAppointmentRequest}
+                    variant="primary"
+                    className="w-100 mt-3"
+                    onClick={handleAmbulanceBooking}
+                    disabled={!ambulanceLocation}
                   >
-                    Book Appointment
+                    Request Ambulance
                   </Button>
                 </Form>
-              </div>
-            )}
-          </Segment>
-        </Tab.Pane>
-      ),
-    },
-    {
-      menuItem: "Your Appointments",
-      render: () => (
-        <Tab.Pane attached={false}>
-          <Segment
-            raised
-            style={{ backgroundColor: "#f9f9f9", padding: "20px" }}
-          >
-            <Header
-              as="h2"
-              textAlign="center"
-              style={{ marginBottom: "30px" }}
-            >
-              Your Appointments
-              <img src={timetable} alt="stethoscope logo" />
-            </Header>
+              </Card.Body>
+            </Card>
+          </Tab.Pane>
+        </Tab.Content>
+      </Tab.Container>
 
-            {appointments.length === 0 ? (
-              <Message>No appointments found</Message>
-            ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  gap: "20px",
-                }}
-              >
-                <Modal
-                  open={editModalOpen}
-                  onClose={() => setEditModalOpen(false)}
-                  size="small"
-                >
-                  <Modal.Header>Edit Appointment</Modal.Header>
-                  <Modal.Content>
-                    <Form>
-                      <Form.Field>
-                        <label>Select Day</label>
-                        <Button.Group fluid style={{ marginBottom: "10px" }}>
-                          {workingDaysOptions.map((option) => (
-                            <Button
-                              key={option.value}
-                              active={editDay === option.value}
-                              onClick={() => setEditDay(option.value)}
-                              style={{
-                                backgroundColor:
-                                  editDay === option.value ? "#2185d0" : "",
-                                color:
-                                  editDay === option.value ? "white" : "black",
-                              }}
-                            >
-                              {option.text}
-                            </Button>
-                          ))}
-                        </Button.Group>
-                      </Form.Field>
-                      <Form.Field>
-                        <label>Select Time</label>
-                        <Button.Group fluid style={{ marginBottom: "10px" }}>
-                          {workingHoursOptions.map((option) => (
-                            <Button
-                              key={option.value}
-                              active={editTime === option.value}
-                              onClick={() => setEditTime(option.value)}
-                              style={{
-                                backgroundColor:
-                                  editTime === option.value ? "#2185d0" : "",
-                                color:
-                                  editTime === option.value ? "white" : "black",
-                              }}
-                            >
-                              {option.text}
-                            </Button>
-                          ))}
-                        </Button.Group>
-                      </Form.Field>
-                    </Form>
-                  </Modal.Content>
-                  <Modal.Actions>
+      {/* Edit Appointment Modal */}
+      <Modal show={editModalOpen} onHide={() => setEditModalOpen(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Appointment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Select Day</Form.Label>
+              <div className="d-flex flex-wrap gap-2">
+                {workingDaysOptions.length > 0 ? (
+                  workingDaysOptions.map((option) => (
                     <Button
-                      color="black"
-                      onClick={() => setEditModalOpen(false)}
+                      key={option.value}
+                      variant={editDay === option.value ? "primary" : "light"}
+                      onClick={() => setEditDay(option.value)}
                     >
-                      Cancel
+                      {option.text}
                     </Button>
-                    <Button
-                      color="green"
-                      onClick={handleUpdateAppointment}
-                      disabled={!editDay || !editTime}
-                    >
-                      Save
-                    </Button>
-                  </Modal.Actions>
-                </Modal>
-
-                {appointments.map((appointment) => (
-                  <CSSTransition
-                    key={appointment.id}
-                    timeout={500}
-                    classNames="appointment-card"
-                  >
-                    <Card
-                      style={{
-                        width: "300px",
-                        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
-                        borderRadius: "12px",
-                        overflow: "hidden",
-                        transition: "transform 0.3s ease-in-out",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.transform = "scale(1.05)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.transform = "scale(1)")
-                      }
-                    >
-                      <Card.Content>
-                        <Card.Header
-                          style={{
-                            fontSize: "1.3em",
-                            color: "#333",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          {appointment.day} at {appointment.time}
-                        </Card.Header>
-                        <Card.Description>
-                          <p
-                            style={{
-                              margin: "0",
-                              fontSize: "1.1em",
-                              color: "#555",
-                            }}
-                          >
-                            <strong>Doctor:</strong> Dr.{" "}
-                            {appointment.doctor.user.firstName}{" "}
-                            {appointment.doctor.user.lastName}
-                          </p>
-                          <p
-                            style={{
-                              margin: "0",
-                              fontSize: "1.1em",
-                              color: "#555",
-                            }}
-                          >
-                            <strong>Hospital:</strong>{" "}
-                            {appointment.doctor.hospital.name}{" "}
-                          </p>
-                          <p
-                            style={{
-                              margin: "0",
-                              fontSize: "1.1em",
-                              color: "#555",
-                            }}
-                          >
-                            <strong>Clinic:</strong>{" "}
-                            {appointment.doctor.specialization.name}{" "}
-                          </p>
-                        </Card.Description>
-                      </Card.Content>
-                      <Card.Content extra>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Button
-                            color="red"
-                            icon
-                            onClick={() =>
-                              handleDeleteAppointment(appointment.id)
-                            }
-                          >
-                            <Icon name="trash" />
-                          </Button>
-
-                          <Button
-                            color="blue"
-                            icon
-                            onClick={() => handleEditAppointment(appointment)}
-                          >
-                            <Icon name="edit" />
-                          </Button>
-                          <Label
-                            color={getStatusColor(appointment.status)}
-                            ribbon
-                          >
-                            {appointment.status}
-                          </Label>
-                        </div>
-                      </Card.Content>
-                    </Card>
-                  </CSSTransition>
-                ))}
+                  ))
+                ) : (
+                  <Alert variant="info" className="w-100">No working days available for this doctor.</Alert>
+                )}
               </div>
-            )}
-          </Segment>
-        </Tab.Pane>
-      ),
-    },
-  ];
+            </Form.Group>
 
-  return (
-    <Container>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "10px 0",
-        }}
-      >
-        <div className="healSync-logo">
-          <Image centered src={HealSync} />
-        </div>
-        <Button color="red" onClick={handleLogout}>
-          <Icon name="log out" /> Logout
-        </Button>
-      </div>
-      <Header as="h2" textAlign="center" style={{ marginTop: "20px" }}>
-        Welcome, {userName}!
-      </Header>
-      <Tab panes={panes} />
-
-      <div style={{ marginTop: "20px", textAlign: "center" }}>
-  <Link to="/book-ambulance">
-    <Button
-  variant="contained"
-  color="red"
-  marginBottom="10px"
-  marginTop="10px"
-  sx={{
-    padding: "10px 20px",
-    borderRadius: "5px"
-  }}
->
-  Book Ambulance
-</Button>
-
-
-  </Link>
-</div>
-
+            <Form.Group className="mb-3">
+              <Form.Label>Select Time</Form.Label>
+              <div className="d-flex flex-wrap gap-2">
+                {workingHoursOptions.length > 0 ? (
+                  workingHoursOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      variant={editTime === option.value ? "primary" : "light"}
+                      onClick={() => setEditTime(option.value)}
+                    >
+                      {option.text}
+                    </Button>
+                  ))
+                ) : (
+                  <Alert variant="info" className="w-100">No working hours available for this doctor.</Alert>
+                )}
+              </div>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setEditModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="success" onClick={handleUpdateAppointment} disabled={!editDay || !editTime}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
