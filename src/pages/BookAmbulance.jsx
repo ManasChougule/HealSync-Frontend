@@ -15,12 +15,10 @@ function BookAmbulance() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Fetch available ambulances
     axios.get("http://localhost:8080/api/ambulances/available")
       .then(res => setAmbulances(res.data))
       .catch(err => console.error("Error loading ambulances:", err));
 
-    // Fetch hospital list
     axios.get("http://localhost:8080/hospitals/all")
       .then(res => setHospitals(res.data))
       .catch(err => console.error("Error loading hospitals:", err));
@@ -36,7 +34,16 @@ function BookAmbulance() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post("http://localhost:8080/api/ambulance-bookings/book", formData)
+
+    const payload = {
+      patientName: formData.patientName,
+      age: parseInt(formData.age),
+      pickupLocation: formData.pickupLocation,
+      ambulanceId: parseInt(formData.ambulanceId),
+      hospitalId: parseInt(formData.dropHospitalId),
+    };
+
+    axios.post("http://localhost:8080/api/ambulance-bookings/book", payload)
       .then(res => {
         setMessage("🚑 Ambulance booked successfully!");
         setFormData({
@@ -54,47 +61,55 @@ function BookAmbulance() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Book an Ambulance</h2>
-      {message && <p>{message}</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Patient Name:</label>
+    <div style={styles.container}>
+      <h2 style={styles.heading}>🚑 Book an Ambulance</h2>
+      {message && <p style={styles.message}>{message}</p>}
+      
+      <form onSubmit={handleSubmit} style={styles.form}>
+        <div style={styles.field}>
+          <label style={styles.label}>Patient Name:</label>
           <input
             type="text"
             name="patientName"
             value={formData.patientName}
             onChange={handleChange}
             required
+            style={styles.input}
           />
         </div>
-        <div>
-          <label>Age:</label>
+
+        <div style={styles.field}>
+          <label style={styles.label}>Age:</label>
           <input
             type="number"
             name="age"
             value={formData.age}
             onChange={handleChange}
             required
+            style={styles.input}
           />
         </div>
-        <div>
-          <label>Pickup Location:</label>
+
+        <div style={styles.field}>
+          <label style={styles.label}>Pickup Location:</label>
           <input
             type="text"
             name="pickupLocation"
             value={formData.pickupLocation}
             onChange={handleChange}
             required
+            style={styles.input}
           />
         </div>
-        <div>
-          <label>Select Ambulance:</label>
+
+        <div style={styles.field}>
+          <label style={styles.label}>Select Ambulance:</label>
           <select
             name="ambulanceId"
             value={formData.ambulanceId}
             onChange={handleChange}
             required
+            style={styles.select}
           >
             <option value="">-- Select --</option>
             {ambulances.map((amb) => (
@@ -104,13 +119,15 @@ function BookAmbulance() {
             ))}
           </select>
         </div>
-        <div>
-          <label>Select Hospital:</label>
+
+        <div style={styles.field}>
+          <label style={styles.label}>Select Hospital:</label>
           <select
             name="dropHospitalId"
             value={formData.dropHospitalId}
             onChange={handleChange}
             required
+            style={styles.select}
           >
             <option value="">-- Select --</option>
             {hospitals.map((hos) => (
@@ -120,10 +137,72 @@ function BookAmbulance() {
             ))}
           </select>
         </div>
-        <button type="submit">Book Ambulance</button>
+
+        <button type="submit" style={styles.button}>
+          Book Ambulance
+        </button>
       </form>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    maxWidth: "500px",
+    margin: "40px auto",
+    padding: "30px",
+    borderRadius: "10px",
+    boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+    backgroundColor: "#f8f9fa",
+    fontFamily: "Arial, sans-serif",
+  },
+  heading: {
+    textAlign: "center",
+    marginBottom: "20px",
+    color: "#333"
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column"
+  },
+  field: {
+    marginBottom: "15px"
+  },
+  label: {
+    marginBottom: "5px",
+    display: "block",
+    fontWeight: "bold",
+    color: "#555"
+  },
+  input: {
+    padding: "8px",
+    width: "100%",
+    borderRadius: "5px",
+    border: "1px solid #ccc",
+    fontSize: "14px"
+  },
+  select: {
+    padding: "8px",
+    width: "100%",
+    borderRadius: "5px",
+    border: "1px solid #ccc",
+    fontSize: "14px"
+  },
+  button: {
+    padding: "10px 15px",
+    backgroundColor: "#007bff",
+    color: "#fff",
+    fontWeight: "bold",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+    transition: "background-color 0.3s"
+  },
+  message: {
+    textAlign: "center",
+    marginBottom: "15px",
+    fontWeight: "bold"
+  }
+};
 
 export default BookAmbulance;
