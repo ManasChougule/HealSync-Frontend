@@ -16,7 +16,7 @@ const Header = () => {
               className="d-inline-block align-top"
             />
             <span className="ms-3 d-none d-md-block fs-3"> {/* Increased font size */}
-              HealSync <small className="text-light opacity-75 fs-6">- Your Health, Our Priority</small>
+              HealSync <small className="text-light opacity-75 fs-6">- Unified Multi-Hospital Appointment Platform</small>
             </span>
           </Navbar.Brand>
         </LinkContainer>
