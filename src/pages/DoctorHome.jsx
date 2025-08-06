@@ -17,21 +17,24 @@ import axios from "axios";
 import stethoscope from "../assets/stethoscope.png";
 import edit from "../assets/edit.png";
 import timetable from "../assets/timetable.png";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 export default function DoctorHome() {
-    const [doctorName, setDoctorName] = useState(""); // State to store doctor name
-    const [doctorId, setDoctorId] = useState(""); // State to store doctor ID
-    const [appointments, setAppointments] = useState([]); // State to store doctor's appointments
-    const [loading, setLoading] = useState(false); // State for loading status
-    const [doctorDetails, setDoctorDetails] = useState({
-    hospital: "", 
-    specialization: "", 
-    workingDays: "", 
+  const [doctorName, setDoctorName] = useState(""); // State to store doctor name
+  const [doctorId, setDoctorId] = useState(""); // State to store doctor ID
+  const [appointments, setAppointments] = useState([]); // State to store doctor's appointments
+  const [loading, setLoading] = useState(false); // State for loading status
+  const [doctorDetails, setDoctorDetails] = useState({
+    hospital: "",
+    specialization: "",
+    workingDays: "",
     workingHours: "",
-    }); // State to store doctor details
+  }); // State to store doctor details
 
   const [hospitalOptions, setHospitalOptions] = useState([]); // State to store hospital options
   const [specializationOptions, setSpecializationOptions] = useState([]); // State to store hospital options
+
+  const navigate = useNavigate(); // Initialize useNavigate hook
 
   // Dropdown options for working days
   const daysOfWeek = [
@@ -61,7 +64,7 @@ export default function DoctorHome() {
   ];
 
   useEffect(() => {
-   // Retrieving the logged-in doctor's information from LocalStorage
+    // Retrieving the logged-in doctor's information from LocalStorage
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) {
       setDoctorName(`${user.firstName} ${user.lastName}`);
@@ -97,7 +100,10 @@ export default function DoctorHome() {
         setSpecializationOptions(options);
       })
       .catch((error) => {
-        console.error("An error occurred while loading specializations:", error);
+        console.error(
+          "An error occurred while loading specializations:",
+          error
+        );
         toast.error("An error occurred while loading specializations.");
       });
 
@@ -111,8 +117,8 @@ export default function DoctorHome() {
           setLoading(false);
         })
         .catch((error) => {
-        console.error("An error occurred while loading appointments:", error);
-        toast.error("An error occurred while loading appointments.");
+          console.error("An error occurred while loading appointments:", error);
+          toast.error("An error occurred while loading appointments.");
           setLoading(false);
         });
     }
@@ -124,7 +130,7 @@ export default function DoctorHome() {
       hospitalOptions.length > 0 &&
       specializationOptions.length > 0
     ) {
-     // Load doctor information
+      // Load doctor information
       axios
         .get(`http://localhost:8080/doctors/${doctorId}`)
         .then((response) => {
@@ -146,12 +152,15 @@ export default function DoctorHome() {
           });
         })
         .catch((error) => {
-         console.error("An error occurred while loading doctor information:", error);
+          console.error(
+            "An error occurred while loading doctor information:",
+            error
+          );
         });
     }
   }, [doctorId, hospitalOptions, specializationOptions]);
 
- // Appointment statuses
+  // Appointment statuses
   const statusOptions = [
     {
       key: "pending",
@@ -206,7 +215,10 @@ export default function DoctorHome() {
         toast.success("Appointment status updated successfully!");
       })
       .catch((error) => {
-        console.error("An error occurred while updating the appointment status:", error);
+        console.error(
+          "An error occurred while updating the appointment status:",
+          error
+        );
         toast.error("An error occurred while updating the appointment status.");
       });
   };
@@ -225,10 +237,18 @@ export default function DoctorHome() {
         toast.success("Doctor information updated successfully!");
       })
       .catch((error) => {
-        console.error("An error occurred while updating doctor information:",
-          error.response ? error.response.data : error.message);
-       toast.error("An error occurred while updating doctor information.");
+        console.error(
+          "An error occurred while updating doctor information:",
+          error.response ? error.response.data : error.message
+        );
+        toast.error("An error occurred while updating doctor information.");
       });
+  };
+
+  // Function to handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("user"); // Clear user data from local storage
+    navigate("/"); // Navigate to the root path
   };
 
   // Tab options
@@ -358,7 +378,7 @@ export default function DoctorHome() {
     },
   ];
 
-    // Colored styling and icons for status
+  // Colored styling and icons for status
   const getStatusStyles = (status) => {
     switch (status) {
       case "PENDING":
@@ -376,19 +396,24 @@ export default function DoctorHome() {
     <Container style={styles.container}>
       <Segment raised>
         <Grid>
-          <Grid.Row columns={2}>
+          <Grid.Row columns={2} verticalAlign="middle"> {/* Added verticalAlign */}
             <Grid.Column>
               <h2>Doctor Dashboard</h2>
             </Grid.Column>
             <Grid.Column textAlign="right">
-              <h3>
-                Welcome, {doctorName}!{" "}
-                <img
-                  src={stethoscope}
-                  alt="stethoscope logo"
-                  style={styles.logo}
-                />
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}> {/* Flex container for alignment */}
+                <h3>
+                  Welcome, {doctorName}!{" "}
+                  <img
+                    src={stethoscope}
+                    alt="stethoscope logo"
+                    style={styles.logo}
+                  />
+                </h3>
+                <Button color="red" onClick={handleLogout} style={{ marginLeft: '15px' }}> {/* Added logout button */}
+                  <Icon name="log out" /> Logout
+                </Button>
+              </div>
             </Grid.Column>
           </Grid.Row>
         </Grid>
@@ -435,16 +460,16 @@ const styles = {
   },
   logo: {
     width: "40px",
-    height: "40px", 
-    marginRight: "10px", 
+    height: "40px",
+    marginRight: "10px",
   },
   icon: {
-    width: "45px", 
-    height: "45px", 
-    marginRight: "10px", 
+    width: "45px",
+    height: "45px",
+    marginRight: "10px",
   },
   header: {
-    display: "flex", 
-    alignItems: "center", 
+    display: "flex",
+    alignItems: "center",
   },
 };

@@ -1,17 +1,49 @@
 import React, { useState } from "react";
 import {
-  FormField,
-  Button,
-  Form,
   Container,
-  Header,
-  Message,
-  Dropdown,
-  Icon,
-} from "semantic-ui-react";
+  Typography,
+  TextField,
+  Button,
+  MenuItem,
+  Alert,
+  Box,
+  Select,
+  InputLabel,
+  FormControl,
+} from "@mui/material";
+import { styled } from "@mui/system";
 import LoginService from "../services/loginService";
 import { useNavigate } from "react-router-dom";
 import hospitalImage from "../assets/hospital.png";
+
+// Styled Box for wider responsive form container
+const StyledContainer = styled(Box)(({ theme }) => ({
+  marginTop: "4em",
+  background: "linear-gradient(145deg, #e3f2fd, #bbdefb)",
+  padding: "40px",
+  borderRadius: "15px",
+  boxShadow: "0 20px 30px rgba(0,0,0,0.2)",
+  maxWidth: "600px",  // Increased width
+  margin: "0 auto",
+  animation: "fadeIn 1s ease-out",
+  position: "relative",
+  overflow: "hidden",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: "linear-gradient(145deg, rgba(187,222,251,0.8), rgba(227,242,253,0.8))",
+    zIndex: -1,
+    animation: "pulse 6s infinite alternate",
+  },
+  [theme.breakpoints.down("sm")]: {
+    padding: "20px",
+    maxWidth: "90%",
+  },
+}));
 
 const roles = [
   { key: "ad", value: "ADMIN", text: "Admin" },
@@ -33,11 +65,8 @@ export default function Login() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleRoleChange = (e, { value }) => {
-    setFormData({ ...formData, role: value });
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const loginService = new LoginService();
     try {
       const response = await loginService.login(formData);
@@ -66,146 +95,118 @@ export default function Login() {
   };
 
   return (
-    <Container style={styles.container}>
-      <Header as="h2" textAlign="center" style={styles.header}>
-        <img 
-          src={hospitalImage} 
-          alt="Hospital Logo" 
-          style={styles.logo} 
-        />
-        <span>Welcome to the Hospital Appointment System</span>
-      </Header>
-      <Form onSubmit={handleSubmit} size="large" style={styles.form}>
-        <FormField>
-          <Dropdown
-            clearable
-            fluid
-            selection
-            options={roles}
-            placeholder="Select Role"
-            name="role"
-            value={formData.role}
-            onChange={handleRoleChange}
-            style={styles.dropdown}
-          />
-        </FormField>
-        <FormField>
-          <input
-            placeholder="E-mail"
+    <Container className="mt-4 mb-4">
+      <StyledContainer>
+        <Box sx={styles.header}>
+          <img src={hospitalImage} alt="Hospital Logo" style={styles.logo} />
+          <Typography variant="h5" component="h1" sx={{ mt: 2 }}>
+            Welcome to the Hospital Appointment System
+          </Typography>
+        </Box>
+        <Box component="form" onSubmit={handleSubmit} sx={styles.form}>
+          <FormControl fullWidth sx={styles.input}>
+            <InputLabel>Select Role</InputLabel>
+            <Select
+              name="role"
+              value={formData.role}
+              label="Select Role"
+              onChange={handleChange}
+            >
+              {roles.map((role) => (
+                <MenuItem key={role.key} value={role.value}>
+                  {role.text}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Email"
             name="email"
             value={formData.email}
             onChange={handleChange}
-            style={styles.input}
+            sx={styles.input}
           />
-        </FormField>
-        <FormField>
-          <input
+
+          <TextField
+            fullWidth
             type="password"
-            placeholder="Password"
+            label="Password"
             name="password"
             value={formData.password}
             onChange={handleChange}
-            style={styles.input}
+            sx={styles.input}
           />
-        </FormField>
-        {errorMessage && <Message negative>{errorMessage}</Message>}
-        <Button type="submit" primary fluid size="large" style={styles.button}>
-          Login
-        </Button>
-        <div style={styles.signupContainer}>
-          <span>
-            Don't have an account yet?{" "}
-            <Button
-              onClick={() => navigate("/register")}
-              style={styles.linkButton}
-            >
-              Sign Up!
-            </Button>
-          </span>
-        </div>
-      </Form>
-      
-      {/* Dynamically adding style rules */}
-      <style>
-        {`
-          @keyframes fadeIn {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-          }
-          @keyframes fadeInForm {
-            0% { transform: translateY(20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-          }
-          img:hover {
-            transform: scale(1.1);
-          }
-          button:hover {
-            transform: scale(1.05);
-          }
-        `}
-      </style>
+
+          {errorMessage && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {errorMessage}
+            </Alert>
+          )}
+
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={styles.button}
+          >
+            Login
+          </Button>
+
+          <Box sx={styles.signupContainer}>
+            <Typography variant="body2">
+              Don't have an account yet?{" "}
+              <Button
+                onClick={() => navigate("/register")}
+                sx={styles.linkButton}
+              >
+                Sign Up!
+              </Button>
+            </Typography>
+          </Box>
+        </Box>
+      </StyledContainer>
     </Container>
   );
 }
 
 const styles = {
-  container: {
-    marginTop: "7em",
-    background: "linear-gradient(145deg, #f7f7f7, #e0e0e0)",
-    padding: "40px",
-    borderRadius: "15px",
-    boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
-    maxWidth: "450px",
-    margin: "0 auto",
-    animation: "fadeIn 1s ease-out",
-  },
   header: {
-    fontFamily: "'Roboto', sans-serif",
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: "25px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    mb: 4,
   },
   logo: {
-    marginBottom: "10px",
     width: "60px",
     height: "60px",
     transition: "transform 0.3s ease",
+    "&:hover": {
+      transform: "scale(1.1)",
+    },
   },
   input: {
-    borderRadius: "5px",
-    padding: "15px",
-    marginBottom: "15px",
-    border: "1px solid #ddd",
-    fontSize: "16px",
-    transition: "all 0.3s ease",
-  },
-  dropdown: {
-    borderRadius: "5px",
-    padding: "15px",
-    marginBottom: "15px",
-    border: "1px solid #ddd",
-    transition: "border 0.3s ease",
+    mb: 2,
   },
   button: {
-    borderRadius: "5px",
-    background: "#388e3c",
-    color: "#fff",
-    padding: "15px",
+    mt: 3,
+    backgroundColor: "#388e3c",
     fontWeight: "bold",
-    marginTop: "20px",
-    transition: "background-color 0.3s ease, transform 0.2s ease",
+    "&:hover": {
+      backgroundColor: "#2e7d32",
+      transform: "scale(1.05)",
+    },
   },
   linkButton: {
-    background: "transparent",
     color: "#388e3c",
     textDecoration: "underline",
     fontWeight: "bold",
+    p: 0,
+    minWidth: 0,
   },
   signupContainer: {
-    marginTop: "15px",
+    mt: 2,
     textAlign: "center",
   },
   form: {

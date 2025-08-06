@@ -22,7 +22,8 @@ import { CSSTransition } from "react-transition-group";
 import "../css/PatientHome.css";
 import health from "../assets/health.png";
 import timetable from "../assets/timetable.png";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
+
 const PatientHome = () => {
   const [userName, setUserName] = useState("");
   const [userData, setUserData] = useState(null);
@@ -36,12 +37,14 @@ const PatientHome = () => {
   const [specializationOptions, setSpecializationOptions] = useState([]);
   const [workingDaysOptions, setWorkingDaysOptions] = useState([]);
   const [workingHoursOptions, setWorkingHoursOptions] = useState([]);
-  const [loading, setLoading] = useState(false);// Animation for page loading
+  const [loading, setLoading] = useState(false); // Animation for page loading
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editAppointment, setEditAppointment] = useState(null); // Appointment details to be edited
-  const [editDay, setEditDay] = useState(""); 
-  const [editTime, setEditTime] = useState(""); 
+  const [editDay, setEditDay] = useState("");
+  const [editTime, setEditTime] = useState("");
+
+  const navigate = useNavigate(); // Initialize useNavigate hook
 
   useEffect(() => {
     const userDataFromStorage = JSON.parse(localStorage.getItem("user"));
@@ -53,7 +56,7 @@ const PatientHome = () => {
     }
   }, []);
 
-const fetchDoctors = async (specializationName) => {
+  const fetchDoctors = async (specializationName) => {
     setLoading(true); // Start loading animation
     try {
       const response = await axios.get(
@@ -67,29 +70,33 @@ const fetchDoctors = async (specializationName) => {
     }
   };
 
-    // Open form when Edit button is clicked
-    const handleEditAppointment = (appointment) => {
+  // Open form when Edit button is clicked
+  const handleEditAppointment = (appointment) => {
     setEditAppointment(appointment);
     setEditDay(appointment.day); // Set default day to current appointment day
     setEditTime(appointment.time); // Set default time to current appointment time
 
     const doctor = appointment.doctor;
-    const daysOptions = doctor.workingDays ? doctor.workingDays.split(",").map((day) => ({
-        key: day,
-        text: day,
-        value: day,
-    })) : [];
-    const hoursOptions = doctor.workingHours ? doctor.workingHours.split(",").map((hour) => ({
-        key: hour,
-        text: hour,
-        value: hour,
-    })) : [];
+    const daysOptions = doctor.workingDays
+      ? doctor.workingDays.split(",").map((day) => ({
+          key: day,
+          text: day,
+          value: day,
+        }))
+      : [];
+    const hoursOptions = doctor.workingHours
+      ? doctor.workingHours.split(",").map((hour) => ({
+          key: hour,
+          text: hour,
+          value: hour,
+        }))
+      : [];
 
     setWorkingDaysOptions(daysOptions);
     setWorkingHoursOptions(hoursOptions);
 
     setEditModalOpen(true); // Open the form modal
-    };
+  };
 
   useEffect(() => {
     const fetchSpecializations = async () => {
@@ -132,16 +139,20 @@ const fetchDoctors = async (specializationName) => {
     setSelectedDay("");
     setSelectedTime("");
 
-    const daysOptions = doctor.workingDays ? doctor.workingDays.split(",").map((day) => ({
-        key: day,
-        text: day,
-        value: day,
-    })) : [];
-    const hoursOptions = doctor.workingHours ? doctor.workingHours.split(",").map((hour) => ({
-        key: hour,
-        text: hour,
-        value: hour,
-    })) : [];
+    const daysOptions = doctor.workingDays
+      ? doctor.workingDays.split(",").map((day) => ({
+          key: day,
+          text: day,
+          value: day,
+        }))
+      : [];
+    const hoursOptions = doctor.workingHours
+      ? doctor.workingHours.split(",").map((hour) => ({
+          key: hour,
+          text: hour,
+          value: hour,
+        }))
+      : [];
 
     setWorkingDaysOptions(daysOptions);
     setWorkingHoursOptions(hoursOptions);
@@ -159,8 +170,8 @@ const fetchDoctors = async (specializationName) => {
         );
       }
     } catch (error) {
-        console.error("An error occurred while deleting the appointment:", error);
-        alert("An error occurred while deleting the appointment.");
+      console.error("An error occurred while deleting the appointment:", error);
+      alert("An error occurred while deleting the appointment.");
     }
   };
 
@@ -169,7 +180,7 @@ const fetchDoctors = async (specializationName) => {
       case "pending":
         return "orange";
       case "confirmed":
-        return "green"; 
+        return "green";
       case "cancelled":
         return "red";
       default:
@@ -239,15 +250,20 @@ const fetchDoctors = async (specializationName) => {
         );
 
         if (response.status === 200) {
-            alert("Appointment successfully updated.");
-            setEditModalOpen(false); // Close the form
-            fetchAppointments(userData.patientId); // Reload updated appointments
+          alert("Appointment successfully updated.");
+          setEditModalOpen(false); // Close the form
+          fetchAppointments(userData.patientId); // Reload updated appointments
         }
       }
     } catch (error) {
-        console.error("An error occurred while updating the appointment:", error);
-        alert("The doctor is not available at this time.");
+      console.error("An error occurred while updating the appointment:", error);
+      alert("The doctor is not available at this time.");
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user"); // Clear user data from local storage
+    navigate("/"); // Redirect to login page
   };
 
   useEffect(() => {
@@ -270,7 +286,11 @@ const fetchDoctors = async (specializationName) => {
       render: () => (
         <Tab.Pane attached={false}>
           <Segment raised>
-            <Header as="h2" textAlign="center" style={{ marginBottom: "20px" }}>
+            <Header
+              as="h2"
+              textAlign="center"
+              style={{ marginBottom: "20px" }}
+            >
               <div
                 style={{
                   display: "flex",
@@ -352,7 +372,8 @@ const fetchDoctors = async (specializationName) => {
                           </Card.Meta>
                           <Card.Description>
                             <p style={{ color: "#333", fontSize: "1em" }}>
-                              <strong>Hospital:</strong> {doctor.hospital ? doctor.hospital.name: null}
+                              <strong>Hospital:</strong>{" "}
+                              {doctor.hospital ? doctor.hospital.name : null}
                             </p>
                             <p style={{ color: "#333", fontSize: "1em" }}>
                               <strong>Working Days:</strong>{" "}
@@ -415,28 +436,43 @@ const fetchDoctors = async (specializationName) => {
                   )}
 
                   <Form.Field>
-                    <label>Select a day</label>
-                    <Dropdown
-                      placeholder="Select a day"
-                      fluid
-                      selection
-                      options={workingDaysOptions}
-                      onChange={(e, { value }) => setSelectedDay(value)}
-                      value={selectedDay}
-                    />
-                  </Form.Field>
+  <label>Select a day</label>
+  <div style={{ marginBottom: "10px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+    {workingDaysOptions.map((option) => (
+      <Button
+        key={option.value}
+        active={selectedDay === option.value}
+        onClick={() => setSelectedDay(option.value)}
+        style={{
+          backgroundColor: selectedDay === option.value ? "#2185d0" : "#ccc",
+          color: selectedDay === option.value ? "white" : "black",
+        }}
+      >
+        {option.text}
+      </Button>
+    ))}
+  </div>
+</Form.Field>
 
-                  <Form.Field>
-                    <label>Select an hour</label>
-                    <Dropdown
-                      placeholder="Select an hour"
-                      fluid
-                      selection
-                      options={workingHoursOptions}
-                      onChange={(e, { value }) => setSelectedTime(value)}
-                      value={selectedTime}
-                    />
-                  </Form.Field>
+<Form.Field>
+  <label>Select an hour</label>
+  <div style={{ marginBottom: "10px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+    {workingHoursOptions.map((option) => (
+      <Button
+        key={option.value}
+        active={selectedTime === option.value}
+        onClick={() => setSelectedTime(option.value)}
+        style={{
+          backgroundColor: selectedTime === option.value ? "#2185d0" : "#ccc",
+          color: selectedTime === option.value ? "white" : "black",
+        }}
+      >
+        {option.text}
+      </Button>
+    ))}
+  </div>
+</Form.Field>
+
 
                   <Button
                     type="submit"
@@ -461,7 +497,11 @@ const fetchDoctors = async (specializationName) => {
             raised
             style={{ backgroundColor: "#f9f9f9", padding: "20px" }}
           >
-            <Header as="h2" textAlign="center" style={{ marginBottom: "30px" }}>
+            <Header
+              as="h2"
+              textAlign="center"
+              style={{ marginBottom: "30px" }}
+            >
               Your Appointments
               <img src={timetable} alt="stethoscope logo" />
             </Header>
@@ -487,25 +527,43 @@ const fetchDoctors = async (specializationName) => {
                     <Form>
                       <Form.Field>
                         <label>Select Day</label>
-                        <Dropdown
-                          placeholder="Select a day"
-                          fluid
-                          selection
-                          options={workingDaysOptions}
-                          onChange={(e, { value }) => setEditDay(value)}
-                          value={editDay}
-                        />
+                        <Button.Group fluid style={{ marginBottom: "10px" }}>
+                          {workingDaysOptions.map((option) => (
+                            <Button
+                              key={option.value}
+                              active={editDay === option.value}
+                              onClick={() => setEditDay(option.value)}
+                              style={{
+                                backgroundColor:
+                                  editDay === option.value ? "#2185d0" : "",
+                                color:
+                                  editDay === option.value ? "white" : "black",
+                              }}
+                            >
+                              {option.text}
+                            </Button>
+                          ))}
+                        </Button.Group>
                       </Form.Field>
                       <Form.Field>
                         <label>Select Time</label>
-                        <Dropdown
-                          placeholder="Select an hour"
-                          fluid
-                          selection
-                          options={workingHoursOptions}
-                          onChange={(e, { value }) => setEditTime(value)}
-                          value={editTime}
-                        />
+                        <Button.Group fluid style={{ marginBottom: "10px" }}>
+                          {workingHoursOptions.map((option) => (
+                            <Button
+                              key={option.value}
+                              active={editTime === option.value}
+                              onClick={() => setEditTime(option.value)}
+                              style={{
+                                backgroundColor:
+                                  editTime === option.value ? "#2185d0" : "",
+                                color:
+                                  editTime === option.value ? "white" : "black",
+                              }}
+                            >
+                              {option.text}
+                            </Button>
+                          ))}
+                        </Button.Group>
                       </Form.Field>
                     </Form>
                   </Modal.Content>
@@ -636,17 +694,45 @@ const fetchDoctors = async (specializationName) => {
   ];
 
   return (
-
-    <Container>    
+    <Container>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "10px 0",
+        }}
+      >
         <div className="healSync-logo">
-            <Image centered src={HealSync} />
+          <Image centered src={HealSync} />
         </div>
-        <Header as="h2" textAlign="center" style={{ marginTop: "20px" }}>
-            Welcome, {userName}!
-        </Header>
-        <Tab panes={panes} />
-       
-      <Link to="/book-ambulance" className="btn btn-primary">Book Ambulance</Link>
+        <Button color="red" onClick={handleLogout}>
+          <Icon name="log out" /> Logout
+        </Button>
+      </div>
+      <Header as="h2" textAlign="center" style={{ marginTop: "20px" }}>
+        Welcome, {userName}!
+      </Header>
+      <Tab panes={panes} />
+
+      <div style={{ marginTop: "20px", textAlign: "center" }}>
+  <Link to="/book-ambulance">
+    <Button
+  variant="contained"
+  color="red"
+  marginBottom="10px"
+  marginTop="10px"
+  sx={{
+    padding: "10px 20px",
+    borderRadius: "5px"
+  }}
+>
+  Book Ambulance
+</Button>
+
+
+  </Link>
+</div>
 
     </Container>
   );
