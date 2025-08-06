@@ -1,37 +1,52 @@
 import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Grid,
-  Segment,
-  List,
-  Message,
-  Dropdown,
-  Icon,
-  Tab,
-  Form,
-  Button,
-} from "semantic-ui-react";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+// React-Bootstrap Imports
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Card from 'react-bootstrap/Card';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import Alert from 'react-bootstrap/Alert';
+import Spinner from 'react-bootstrap/Spinner';
+import Nav from 'react-bootstrap/Nav';
+import Tab from 'react-bootstrap/Tab';
+
+// Material-UI Imports
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+
+// Icons from react-icons
+import { FaStethoscope, FaEdit, FaCalendarAlt, FaArrowLeft, FaSignOutAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+
+// Local Assets (assuming these are still used for images)
 import stethoscope from "../assets/stethoscope.png";
 import edit from "../assets/edit.png";
 import timetable from "../assets/timetable.png";
 
 export default function DoctorHome() {
-    const [doctorName, setDoctorName] = useState(""); // State to store doctor name
-    const [doctorId, setDoctorId] = useState(""); // State to store doctor ID
-    const [appointments, setAppointments] = useState([]); // State to store doctor's appointments
-    const [loading, setLoading] = useState(false); // State for loading status
-    const [doctorDetails, setDoctorDetails] = useState({
-    hospital: "", 
-    specialization: "", 
-    workingDays: "", 
-    workingHours: "",
-    }); // State to store doctor details
+  const [doctorName, setDoctorName] = useState("");
+  const [doctorId, setDoctorId] = useState("");
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [doctorDetails, setDoctorDetails] = useState({
+    hospital: "",
+    specialization: "",
+    workingDays: [], // Changed to array for multi-select
+    workingHours: [], // Changed to array for multi-select
+  });
 
-  const [hospitalOptions, setHospitalOptions] = useState([]); // State to store hospital options
-  const [specializationOptions, setSpecializationOptions] = useState([]); // State to store hospital options
+  const [hospitalOptions, setHospitalOptions] = useState([]);
+  const [specializationOptions, setSpecializationOptions] = useState([]);
+
+  const navigate = useNavigate();
 
   // Dropdown options for working days
   const daysOfWeek = [
@@ -44,7 +59,7 @@ export default function DoctorHome() {
     { key: "sun", text: "Sunday", value: "Sunday" },
   ];
 
-  // Dropdown options for working hours - Time slots like 08:00, 09:00, 10:00, etc.
+  // Dropdown options for working hours
   const hours = [
     { key: "08:00", text: "08:00", value: "08:00" },
     { key: "09:00", text: "09:00", value: "09:00" },
@@ -61,16 +76,14 @@ export default function DoctorHome() {
   ];
 
   useEffect(() => {
-   // Retrieving the logged-in doctor's information from LocalStorage
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) {
       setDoctorName(`${user.firstName} ${user.lastName}`);
-      setDoctorId(user.userId); // Retrieving the doctor ID
+      setDoctorId(user.doctorId); // Retrieving the doctor ID
     }
   }, []);
 
   useEffect(() => {
-    // Fetching hospitals from the API
     axios
       .get("http://localhost:8080/hospitals/all")
       .then((response) => {
@@ -83,7 +96,7 @@ export default function DoctorHome() {
       })
       .catch((error) => {
         console.error("An error occurred while loading hospitals:", error);
-        toast.error("An error occurred while loading hospitals.");
+        alert("An error occurred while loading hospitals.");
       });
 
     axios
@@ -97,12 +110,14 @@ export default function DoctorHome() {
         setSpecializationOptions(options);
       })
       .catch((error) => {
-        console.error("An error occurred while loading specializations:", error);
-        toast.error("An error occurred while loading specializations.");
+        console.error(
+          "An error occurred while loading specializations:",
+          error
+        );
+        alert("An error occurred while loading specializations.");
       });
 
     if (doctorId) {
-      // API call to load appointments
       setLoading(true);
       axios
         .get(`http://localhost:8080/appointments/doctor/${doctorId}`)
@@ -111,8 +126,8 @@ export default function DoctorHome() {
           setLoading(false);
         })
         .catch((error) => {
-        console.error("An error occurred while loading appointments:", error);
-        toast.error("An error occurred while loading appointments.");
+          console.error("An error occurred while loading appointments:", error);
+          alert("An error occurred while loading appointments.");
           setLoading(false);
         });
     }
@@ -124,7 +139,6 @@ export default function DoctorHome() {
       hospitalOptions.length > 0 &&
       specializationOptions.length > 0
     ) {
-     // Load doctor information
       axios
         .get(`http://localhost:8080/doctors/${doctorId}`)
         .then((response) => {
@@ -146,48 +160,44 @@ export default function DoctorHome() {
           });
         })
         .catch((error) => {
-         console.error("An error occurred while loading doctor information:", error);
+          console.error(
+            "An error occurred while loading doctor information:",
+            error
+          );
         });
     }
   }, [doctorId, hospitalOptions, specializationOptions]);
 
- // Appointment statuses
+  // Appointment statuses with react-icons
   const statusOptions = [
     {
       key: "pending",
       text: (
-        <span>
-          <Icon name="hourglass half" style={{ color: "#FFA500" }} /> Pending
-        </span>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FaHourglassHalf style={{ color: "#FFA500", marginRight: '8px' }} /> Pending
+        </Box>
       ),
       value: "PENDING",
     },
     {
       key: "confirmed",
       text: (
-        <span>
-          <Icon name="check circle" style={{ color: "#28a745" }} /> Confirmed
-        </span>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FaCheckCircle style={{ color: "#28a745", marginRight: '8px' }} /> Confirmed
+        </Box>
       ),
       value: "CONFIRMED",
     },
     {
       key: "cancelled",
       text: (
-        <span>
-          <Icon name="times circle" style={{ color: "#dc3545" }} /> Cancelled
-        </span>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FaTimesCircle style={{ color: "#dc3545", marginRight: '8px' }} /> Cancelled
+        </Box>
       ),
       value: "CANCELLED",
     },
   ];
-
-  const handleChange = (e, { name, value }) => {
-    setDoctorDetails({
-      ...doctorDetails,
-      [name]: value,
-    });
-  };
 
   // Function to send status update to the backend
   const handleStatusChange = (appointmentId, newStatus) => {
@@ -203,248 +213,292 @@ export default function DoctorHome() {
               : appointment
           )
         );
-        toast.success("Appointment status updated successfully!");
+        alert("Appointment status updated successfully!");
       })
       .catch((error) => {
-        console.error("An error occurred while updating the appointment status:", error);
-        toast.error("An error occurred while updating the appointment status.");
+        console.error(
+          "An error occurred while updating the appointment status:",
+          error
+        );
+        alert("An error occurred while updating the appointment status.");
       });
   };
 
-  const handleEditSubmit = () => {
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
     const updateData = {
       hospital: doctorDetails.hospital,
       specialization: doctorDetails.specialization,
       workingDays: doctorDetails.workingDays ? doctorDetails.workingDays.join(",") : "",
       workingHours:  doctorDetails.workingHours ? doctorDetails.workingHours.join(",") : "",
     };
-    axios
-      .put(`http://localhost:8080/doctors/update/${doctorId}`, updateData)
-      .then((response) => {
-        toast.success("Doctor information updated successfully!");
-      })
-      .catch((error) => {
-        console.error("An error occurred while updating doctor information:",
-          error.response ? error.response.data : error.message);
-       toast.error("An error occurred while updating doctor information.");
-      });
-  };
 
-  // Tab options
-  const panes = [
-    {
-      menuItem: "Appointments",
-      render: () => (
-        <Tab.Pane attached={false}>
-          <h3 style={styles.header}>
-            {" "}
-            <img src={timetable} alt="Appointments" style={styles.icon} />{" "}
-            Appointments
-          </h3>
-          {loading ? (
-            <Message info>Appointments are loading...</Message>
-          ) : appointments.length > 0 ? (
-            <List divided relaxed>
-              {appointments.map((appointment) => {
-                const { color, icon } = getStatusStyles(appointment.status);
-                return (
-                  <List.Item key={appointment.id} style={styles.listItem}>
-                    <List.Content>
-                      <List.Header>
-                        {appointment.patient.user.firstName}{" "}
-                        {appointment.patient.user.lastName}
-                      </List.Header>
-                      <List.Description>
-                        Day: {appointment.day} | Time: {appointment.time}
-                      </List.Description>
-
-                      {/* Status display and status update */}
-                      <Grid.Row columns={2} verticalAlign="middle">
-                        <Grid.Column textAlign="right">
-                          <Dropdown
-                            fluid
-                            selection
-                            options={statusOptions}
-                            value={appointment.status}
-                            onChange={(e, { value }) =>
-                              handleStatusChange(appointment.id, value)
-                            }
-                          />
-                        </Grid.Column>
-                      </Grid.Row>
-                    </List.Content>
-                  </List.Item>
-                );
-              })}
-            </List>
-          ) : (
-            <Message info>No appointments available</Message>
-          )}
-        </Tab.Pane>
-      ),
-    },
-    {
-      menuItem: "Edit Profile",
-      render: () => (
-        <Tab.Pane>
-          <h3 style={styles.header}>
-            {" "}
-            <img src={edit} alt="Appointments" style={styles.icon} /> Edit
-            Profile
-          </h3>
-          <Form onSubmit={handleEditSubmit}>
-            {/* Hospital Dropdown */}
-            <Form.Field>
-              <label>Hospital</label>
-              <Dropdown
-                fluid
-                selection
-                options={hospitalOptions}
-                value={doctorDetails.hospital}
-                onChange={(e, { value }) =>
-                  setDoctorDetails({ ...doctorDetails, hospital: value , workingDays: doctorDetails.workingDays ? doctorDetails.workingDays.split(",") : [],
-                    workingHours: doctorDetails.workingHours ? doctorDetails.workingHours.split(",") : [], })
-                }
-              />
-            </Form.Field>
-
-            {/* Expertise Dropdown */}
-            <Form.Field>
-              <label>Specialization</label>
-              <Dropdown
-                fluid
-                selection
-                options={specializationOptions}
-                value={doctorDetails.specialization}
-                onChange={(e, { value }) =>
-                  setDoctorDetails({ ...doctorDetails, specialization: value })
-                }
-              />
-            </Form.Field>
-            <Form.Field>
-              <label>Working Days</label>
-              <Dropdown
-                fluid
-                multiple
-                selection
-                options={daysOfWeek}
-                value={doctorDetails.workingDays}
-                onChange={(e, { value }) =>
-                  setDoctorDetails({ ...doctorDetails, workingDays: value })
-                }
-              />
-            </Form.Field>
-
-            <Form.Field>
-              <label>Working Hours</label>
-              <Dropdown
-                fluid
-                multiple
-                selection
-                options={hours}
-                value={doctorDetails.workingHours}
-                onChange={(e, { value }) =>
-                  setDoctorDetails({ ...doctorDetails, workingHours: value })
-                }
-              />
-            </Form.Field>
-
-            <Button type="submit" color="blue">
-              Save Changes
-            </Button>
-          </Form>
-        </Tab.Pane>
-      ),
-    },
-  ];
-
-    // Colored styling and icons for status
-  const getStatusStyles = (status) => {
-    switch (status) {
-      case "PENDING":
-        return { color: "#FFA500", icon: "hourglass half" };
-      case "CONFIRMED":
-        return { color: "#28a745", icon: "check circle" };
-      case "CANCELLED":
-        return { color: "#dc3545", icon: "times circle" };
-      default:
-        return { color: "#6c757d", icon: "question circle" };
+    try {
+      const response = await axios.put(`http://localhost:8080/doctors/update/${doctorId}`, updateData);
+      alert("Doctor information updated successfully!");
+    } catch (error) {
+      console.error(
+        "An error occurred while updating doctor information:",
+        error.response ? error.response.data : error.message
+      );
+      alert("An error occurred while updating doctor information.");
     }
   };
 
+  // Function to handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
+  // Function to handle back navigation
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  // Helper to get Bootstrap variant for status
+  function getStatusColorVariant(status) {
+    switch ((status || "").toLowerCase()) {
+      case "pending":
+        return "warning";
+      case "confirmed":
+        return "success";
+      case "cancelled":
+        return "danger";
+      default:
+        return "secondary";
+    }
+  }
+
   return (
-    <Container style={styles.container}>
-      <Segment raised>
-        <Grid>
-          <Grid.Row columns={2}>
-            <Grid.Column>
-              <h2>Doctor Dashboard</h2>
-            </Grid.Column>
-            <Grid.Column textAlign="right">
-              <h3>
-                Welcome, {doctorName}!{" "}
-                <img
-                  src={stethoscope}
-                  alt="stethoscope logo"
-                  style={styles.logo}
-                />
-              </h3>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
-      </Segment>
+    <Container className="my-4">
+      {/* Header Row */}
+      <Row className="align-items-center mb-3">
+        <Col xs={4} className="text-start">
+          <img src={stethoscope} alt="HealSync Logo" style={{ maxWidth: "150px" }} />
+        </Col>
+        <Col xs={4} className="text-center">
+          <Typography variant="h4" component="h1" className="mb-0">
+            Welcome, {doctorName}!
+          </Typography>
+        </Col>
+        <Col xs={4} className="text-end">
+          <Button variant="secondary" onClick={handleBack} className="me-2">
+            <FaArrowLeft className="me-1" /> Back
+          </Button>
+          <Button variant="danger" onClick={handleLogout}>
+            <FaSignOutAlt className="me-1" /> Logout
+          </Button>
+        </Col>
+      </Row>
 
-      {/* Tab Component */}
-      <Tab panes={panes} />
+      {/* Tabs */}
+      <Tab.Container defaultActiveKey="appointments">
+        <Nav variant="tabs" className="mb-3">
+          <Nav.Item>
+            <Nav.Link eventKey="appointments">Appointments</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="editProfile">Edit Profile</Nav.Link>
+          </Nav.Item>
+        </Nav>
 
-      {/* ToastContainer */}
-      <ToastContainer
-        position="bottom-center"
-        autoClose={3000}
-        hideProgressBar
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        className="toast-container"
-      />
+        <Tab.Content>
+          {/* Appointments Tab */}
+          <Tab.Pane eventKey="appointments">
+            <Card className="shadow-sm p-4 mb-4">
+              <Card.Body>
+                <Typography variant="h5" component="h2" className="text-center mb-4">
+                  <img src={timetable} alt="Appointments" style={{ width: "40px", height: "35px", marginRight: "10px" }} />
+                  Appointments
+                </Typography>
+
+                {loading ? (
+                  <Box className="d-flex justify-content-center my-4">
+                    <CircularProgress />
+                    <Typography variant="body1" className="ms-2">Appointments are loading...</Typography>
+                  </Box>
+                ) : appointments.length > 0 ? (
+                  <Row xs={1} md={2} lg={3} className="g-4">
+                    {appointments.map((appointment) => (
+                      <Col key={appointment.id}>
+                        <Card className="h-100 shadow-sm appointment-card">
+                          <Card.Body>
+                            <Card.Title className="fs-5">
+                              {appointment.patient.user.firstName}{" "}
+                              {appointment.patient.user.lastName}
+                            </Card.Title>
+                            <Card.Text>
+                              Day: {appointment.day} | Time: {appointment.time}
+                            </Card.Text>
+                            <FormControl fullWidth size="small" sx={{ mt: 2 }}>
+                              <InputLabel id={`status-select-label-${appointment.id}`}>Status</InputLabel>
+                              <Select
+                                labelId={`status-select-label-${appointment.id}`}
+                                id={`status-select-${appointment.id}`}
+                                value={appointment.status}
+                                label="Status"
+                                onChange={(e) => handleStatusChange(appointment.id, e.target.value)}
+                                renderValue={(selected) => {
+                                  const option = statusOptions.find(opt => opt.value === selected);
+                                  return option ? option.text : selected;
+                                }}
+                              >
+                                {statusOptions.map((option) => (
+                                  <MenuItem key={option.key} value={option.value}>
+                                    {option.text}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Card.Body>
+                          <Card.Footer className="d-flex justify-content-end">
+                            <span className={`badge bg-${getStatusColorVariant(appointment.status)}`}>
+                              {appointment.status}
+                            </span>
+                          </Card.Footer>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                ) : (
+                  <Alert variant="info">No appointments available</Alert>
+                )}
+              </Card.Body>
+            </Card>
+          </Tab.Pane>
+
+          {/* Edit Profile Tab */}
+          <Tab.Pane eventKey="editProfile">
+            <Card className="shadow-sm p-4 mb-4">
+              <Card.Body>
+                <Typography variant="h5" component="h2" className="text-center mb-4">
+                  <img src={edit} alt="Edit Profile" style={{ width: "40px", height: "35px", marginRight: "10px" }} />
+                  Edit Profile
+                </Typography>
+                <Form onSubmit={handleEditSubmit}>
+                  {/* Hospital Dropdown */}
+                  <Form.Group className="mb-3">
+                    <Form.Label>Hospital</Form.Label>
+                    <FormControl fullWidth>
+                      <InputLabel id="hospital-select-label">Hospital</InputLabel>
+                      <Select
+                        labelId="hospital-select-label"
+                        id="hospital-select"
+                        value={doctorDetails.hospital}
+                        label="Hospital"
+                        onChange={(e) =>
+                          setDoctorDetails({ ...doctorDetails, hospital: e.target.value })
+                        }
+                      >
+                        {hospitalOptions.map((option) => (
+                          <MenuItem key={option.key} value={option.value}>
+                            {option.text}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Form.Group>
+
+                  {/* Specialization Dropdown */}
+                  <Form.Group className="mb-3">
+                    <Form.Label>Specialization</Form.Label>
+                    <FormControl fullWidth>
+                      <InputLabel id="specialization-select-label">Specialization</InputLabel>
+                      <Select
+                        labelId="specialization-select-label"
+                        id="specialization-select"
+                        value={doctorDetails.specialization}
+                        label="Specialization"
+                        onChange={(e) =>
+                          setDoctorDetails({ ...doctorDetails, specialization: e.target.value })
+                        }
+                      >
+                        {specializationOptions.map((option) => (
+                          <MenuItem key={option.key} value={option.value}>
+                            {option.text}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Form.Group>
+
+                  {/* Working Days Multi-select with smaller popup */}
+                  <Form.Group className="mb-3">
+                    <Form.Label>Working Days</Form.Label>
+                    <FormControl fullWidth>
+                      <InputLabel id="working-days-select-label">Working Days</InputLabel>
+                      <Select
+                        labelId="working-days-select-label"
+                        id="working-days-select"
+                        multiple
+                        value={doctorDetails.workingDays}
+                        label="Working Days"
+                        onChange={(e) =>
+                          setDoctorDetails({ ...doctorDetails, workingDays: e.target.value })
+                        }
+                        renderValue={(selected) => selected.join(', ')}
+                        MenuProps={{
+                          PaperProps: {
+                            style: {
+                              maxHeight: 200, // Max height for the popup
+                              width: 250,    // Max width for the popup
+                            },
+                          },
+                        }}
+                      >
+                        {daysOfWeek.map((option) => (
+                          <MenuItem key={option.key} value={option.value}>
+                            {option.text}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Form.Group>
+
+                  {/* Working Hours Multi-select with smaller popup */}
+                  <Form.Group className="mb-3">
+                    <Form.Label>Working Hours</Form.Label>
+                    <FormControl fullWidth>
+                      <InputLabel id="working-hours-select-label">Working Hours</InputLabel>
+                      <Select
+                        labelId="working-hours-select-label"
+                        id="working-hours-select"
+                        multiple
+                        value={doctorDetails.workingHours}
+                        label="Working Hours"
+                        onChange={(e) =>
+                          setDoctorDetails({ ...doctorDetails, workingHours: e.target.value })
+                        }
+                        renderValue={(selected) => selected.join(', ')}
+                        MenuProps={{
+                          PaperProps: {
+                            style: {
+                              maxHeight: 200, // Max height for the popup
+                              width: 250,    // Max width for the popup
+                            },
+                          },
+                        }}
+                      >
+                        {hours.map((option) => (
+                          <MenuItem key={option.key} value={option.value}>
+                            {option.text}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Form.Group>
+
+                  <Button type="submit" variant="primary" className="w-100 mt-3">
+                    Save Changes
+                  </Button>
+                </Form>
+              </Card.Body>
+            </Card>
+          </Tab.Pane>
+        </Tab.Content>
+      </Tab.Container>
     </Container>
   );
 }
-
-const styles = {
-  container: {
-    marginTop: "2em",
-    padding: "20px",
-  },
-  list: {
-    marginTop: "20px",
-  },
-  listItem: {
-    marginBottom: "15px",
-    padding: "10px",
-    borderRadius: "8px",
-    backgroundColor: "#f9f9f9",
-    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-  },
-  dropdown: {
-    width: "150px",
-    marginTop: "10px",
-  },
-  logo: {
-    width: "40px",
-    height: "40px", 
-    marginRight: "10px", 
-  },
-  icon: {
-    width: "45px", 
-    height: "45px", 
-    marginRight: "10px", 
-  },
-  header: {
-    display: "flex", 
-    alignItems: "center", 
-  },
-};

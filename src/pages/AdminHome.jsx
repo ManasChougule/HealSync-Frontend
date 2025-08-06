@@ -1,189 +1,78 @@
 import React, { useEffect, useState } from "react";
 import {
-  List,
-  Button,
-  Image,
   Container,
   Grid,
-  Segment,
-  Form,
-  Modal,
-  Loader,
+  Typography,
+  Paper,
+  Button,
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  Tabs,
   Tab,
-  Label,
-  Icon,
-} from "semantic-ui-react";
-import { Link } from "react-router-dom"; 
+  Box,
+  CircularProgress,
+  Chip,
+  Stack,
+} from "@mui/material";
+import { Delete, Edit, CheckCircle, Cancel, AccessTime, Help, Logout, ArrowBack } from "@mui/icons-material";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import medicalteam from "../assets/medical-team.png";
-import examination from "../assets/examination.png";
-import medicalappointment from "../assets/medical-appointment.png";
-import hospital from "../assets/hospital.png";
-import clinic from "../assets/clinic.png";
 
 export default function AdminHome() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser , setSelectedUser ] = useState(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-
   const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
-
   const [hospitals, setHospitals] = useState([]);
-
   const [specializations, setSpecialization] = useState([]);
-
-  const [selectedHospital, setSelectedHospital] = useState(null);
-
-  const [selectedSpecialization, setSelectedSpecialization] = useState(null);
-
-// State for adding a hospital
   const [hospitalName, setHospitalName] = useState("");
   const [hospitalCity, setHospitalCity] = useState("");
-
-  // State for adding expertise
+  const [hospitalAddress, setHospitalAddress] = useState("");
   const [specializationName, setSpecializationName] = useState("");
+  const [selectedHospital, setSelectedHospital] = useState(null);
+  const [selectedSpecialization, setSelectedSpecialization] = useState(null);
+  const [openHospitalDialog, setOpenHospitalDialog] = useState(false);
+  const [openSpecializationDialog, setOpenSpecializationDialog] = useState(false);
 
-  // Open the modal for editing the hospital
-  const handleEditHospital = (hospital) => {
-    setSelectedHospital(hospital);
-    setHospitalName(hospital.name);
-    setHospitalCity(hospital.city);
-  };
+  // New states for Ambulance management
+  const [ambulances, setAmbulances] = useState([]);
+  const [selectedAmbulance, setSelectedAmbulance] = useState(null);
+  const [openAmbulanceDialog, setOpenAmbulanceDialog] = useState(false);
+  const [ambulanceNumber, setAmbulanceNumber] = useState("");
+  const [ambulanceLocation, setAmbulanceLocation] = useState("");
 
-  // Open the modal for editing the specialization
-  const handleEditSpecialization = (specialization) => {
-    setSelectedSpecialization(specialization);
-    setSpecializationName(specialization.name);
-  };
-
-  // Close the modal
-  const handleCloseHospital = () => {
-    setSelectedHospital(null);
-    setHospitalName("");
-    setHospitalCity("");
-  };
-
-  // Close the modal
-  const handleCloseSpecialization = () => {
-    setSelectedSpecialization(null);
-    setSpecializationName("");
-  };
-
-  // Handle the form submission for editing the hospital
-  const handleSubmitHospital = () => {
-    if (!hospitalName || !hospitalCity) {
-      toast.error("Please fill all fields", {
-        position: "bottom-center",
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    setLoading(true);
-    axios
-      .put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, {
-        name: hospitalName,
-        city: hospitalCity,
-      })
-      .then((response) => {
-        toast.success("Hospital updated successfully", {
-          position: "bottom-center",
-          autoClose: 3000,
-        });
-        // Reflect the update from the API response directly on the screen
-        setHospitals((prevHospitals) =>
-          prevHospitals.map((hospital) =>
-            hospital.id === selectedHospital.id
-              ? { ...hospital, name: hospitalName, city: hospitalCity }
-              : hospital
-          )
-        );
-        setLoading(false);
-        handleCloseHospital();
-      })
-      .catch((error) => {
-        toast.error("Error updating hospital", {
-          position: "bottom-center",
-          autoClose: 3000,
-        });
-        setLoading(false);
-      });
-  };
-
-  const handleSubmitSpecialization = () => {
-    if (!specializationName) {
-      toast.error("Please fill all fields", {
-        position: "bottom-center",
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    setLoading(true);
-    axios
-      .put(
-        `http://localhost:8080/specializations/update/${selectedSpecialization.id}`,
-        {
-          name: specializationName,
-        }
-      )
-      .then((response) => {
-        toast.success("Clinic updated successfully", {
-          position: "bottom-center",
-          autoClose: 3000,
-        });
-       
-        setSpecialization((prevSpecializations) =>
-          prevSpecializations.map((specialization) =>
-            specialization.id === selectedSpecialization.id
-              ? { ...specialization, name: specializationName }
-              : specialization
-          )
-        );
-
-        setLoading(false);
-        handleCloseSpecialization(); // Close the modal and reset old data
-      })
-      .catch((error) => {
-        toast.error("Error updating clinic", {
-          position: "bottom-center",
-          autoClose: 3000,
-        });
-        setLoading(false);
-      });
-  };
-
-  // Loading users
+  // Load users
   useEffect(() => {
     setLoading(true);
     axios
       .get("http://localhost:8080/registration/all?role=ADMIN")
       .then((response) => {
         const allUsers = response.data;
-        // Categorizing users based on their roles
         setDoctors(allUsers.filter((user) => user.role === "DOCTOR"));
         setPatients(allUsers.filter((user) => user.role === "PATIENT"));
         setLoading(false);
       })
-      .catch((error) => {
-        toast.error("Error fetching users", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
+      .catch(() => {
+        toast.error("Error fetching users");
         setLoading(false);
       });
   }, []);
- // Loading appointments
+
+  // Load appointments
   useEffect(() => {
     setLoading(true);
     axios
@@ -192,117 +81,67 @@ export default function AdminHome() {
         setAppointments(response.data);
         setLoading(false);
       })
-      .catch((error) => {
-        toast.error("Error fetching appointments", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
+      .catch(() => {
+        toast.error("Error fetching appointments");
         setLoading(false);
       });
   }, []);
 
+  // Load hospitals
   useEffect(() => {
     axios
       .get("http://localhost:8080/hospitals/all")
       .then((response) => {
-        setHospitals(response.data); 
+        setHospitals(response.data);
       })
-      .catch((error) => {
-        toast.error("Error fetching hospitals", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
+      .catch(() => {
+        toast.error("Error fetching hospitals");
       });
   }, []);
 
+  // Load specializations
   useEffect(() => {
     axios
       .get("http://localhost:8080/specializations/all")
       .then((response) => {
-        setSpecialization(response.data); 
+        setSpecialization(response.data);
       })
-      .catch((error) => {
-        toast.error("Error fetching specializations", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
+      .catch(() => {
+        toast.error("Error fetching specializations");
       });
   }, []);
 
-  useEffect(() => {
-    if (selectedHospital) {
-      console.log("Selected Hospital: ", selectedHospital); // Check the currently selected hospital information
-    }
-  }, [selectedHospital]);
 
-  useEffect(() => {
-    if (selectedSpecialization) {
-      console.log("Selected Specialization: ", selectedSpecialization); // Check the currently selected hospital information
-    }
-  }, [selectedSpecialization]);
 
   const handleEdit = (user) => {
-    setSelectedUser(user);
+    setSelectedUser (user);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setSelectedUser(null);
+    setSelectedUser (null);
   };
 
   const handleSubmit = () => {
     setLoading(true);
     axios
-      .put(
-        `http://localhost:8080/registration/update/${selectedUser.id}`,
-        selectedUser
-      )
-      .then((response) => {
-        toast.success("User updated successfully!", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
-        setUsers(
-          users.map((user) =>
-            user.id === selectedUser.id ? selectedUser : user
-          )
-        );
+      .put(`http://localhost:8080/registration/update/${selectedUser .id}`, selectedUser )
+      .then(() => {
+        toast.success("User  updated successfully!");
+        setUsers(users.map((user) => (user.id === selectedUser .id ? selectedUser  : user)));
         setLoading(false);
         handleClose();
       })
-      .catch((error) => {
-        toast.error("An error occurred while updating the user.", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
+      .catch(() => {
+        toast.error("Error updating user");
         setLoading(false);
       });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setSelectedUser({ ...selectedUser, [name]: value });
+    setSelectedUser ({ ...selectedUser , [name]: value });
   };
 
   const handleDelete = (userId) => {
@@ -310,67 +149,158 @@ export default function AdminHome() {
       setLoading(true);
       axios
         .delete(`http://localhost:8080/registration/delete/${userId}`)
-        .then((response) => {
-          toast.success("User deleted successfully!", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
+        .then(() => {
+          toast.success("User  deleted successfully!");
           setUsers(users.filter((user) => user.id !== userId));
           setLoading(false);
         })
-        .catch((error) => {
-          toast.error("An error occurred while deleting the user.", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
+        .catch(() => {
+          toast.error("Error deleting user");
           setLoading(false);
         });
     }
   };
 
-  const handleDeleteAppointment = (appointmentId) => {
-    if (window.confirm("Are you sure you want to delete this appointment?")) {
+  const handleLogout = () => {
+    localStorage.clear();
+    toast.success("Logged out successfully!");
+    navigate("/");
+  };
+
+  const handleBack = () => {
+    navigate(-1); // Navigates to the previous page in the history stack
+  };
+
+  const getStatusIcon = (status) => {
+    switch ((status || "").toLowerCase()) {
+      case "pending":
+        return <AccessTime color="warning" />;
+      case "confirmed":
+        return <CheckCircle color="success" />;
+      case "cancelled":
+        return <Cancel color="error" />;
+      default:
+        return <Help color="disabled" />;
+    }
+  };
+
+  const renderUsers = (userList) => (
+    <List>
+      {userList.map((user) => (
+        <ListItem key={user.id} sx={styles.listItem}>
+          <ListItemAvatar>
+            <Avatar src={user.gender === "MALE" ? "/male.png" : "/female.png"} />
+          </ListItemAvatar>
+          <ListItemText
+            primary={`${user.firstName} ${user.lastName}`}
+            secondary={`${user.role} | ${user.email}`}
+          />
+          <Stack direction="row" spacing={1}>
+            <Button variant="contained" color="primary" onClick={() => handleEdit(user)}>
+              <Edit />
+            </Button>
+            <Button variant="contained" color="error" onClick={() => handleDelete(user.id)}>
+              <Delete />
+            </Button>
+          </Stack>
+        </ListItem>
+      ))}
+    </List>
+  );
+
+  const renderAppointments = () => (
+    <List>
+      {appointments.map((appointment) => (
+        <ListItem key={appointment.id} sx={styles.listItem}>
+          <ListItemText
+            primary={`Date: ${appointment.day} at ${appointment.time}`}
+            secondary={`Doctor: ${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName} | Patient: ${appointment.patient.user.firstName} ${appointment.patient.user.lastName}`}
+          />
+          <Chip
+            icon={getStatusIcon(appointment.status)}
+            label={appointment.status || "Unknown"}
+            variant="outlined"
+          />
+        </ListItem>
+      ))}
+    </List>
+  );
+
+  const handleHospitalSubmit = () => {
+    if (!hospitalName || !hospitalCity || !hospitalAddress) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setLoading(true);
+    axios
+      .post("http://localhost:8080/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress })
+      .then(() => {
+        toast.success("Hospital added successfully!");
+        setHospitalName("");
+        setHospitalCity("");
+        setHospitalAddress("");
+        setLoading(false);
+        axios.get("http://localhost:8080/hospitals/all").then((response) => {
+          setHospitals(response.data);
+        });
+      })
+      .catch(() => {
+        toast.error("Error adding hospital");
+        setLoading(false);
+      });
+  };
+
+  const handleSpecializationSubmit = () => {
+    if (!specializationName) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setLoading(true);
+    axios
+      .post("http://localhost:8080/specializations/add", { name: specializationName })
+      .then(() => {
+        toast.success("Specialization added successfully!");
+        setSpecializationName("");
+        setLoading(false);
+        axios.get("http://localhost:8080/specializations/all").then((response) => {
+          setSpecialization(response.data);
+        });
+      })
+      .catch(() => {
+        toast.error("Error adding specialization");
+        setLoading(false);
+      });
+  };
+
+  const handleEditSpecialization = (specialization) => {
+    setSelectedSpecialization(specialization);
+    setSpecializationName(specialization.name);
+    setOpenSpecializationDialog(true);
+  };
+
+  const handleDeleteSpecialization = (specializationId) => {
+    if (window.confirm("Are you sure you want to delete this specialization?")) {
       setLoading(true);
       axios
-        .delete(
-          `http://localhost:8080/registration/appointments/delete/${appointmentId}`
-        )
-        .then((response) => {
-          toast.success("Appointment deleted successfully!", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
-          setAppointments(
-            appointments.filter(
-              (appointment) => appointment.id !== appointmentId
-            )
-          );
+        .delete(`http://localhost:8080/specializations/delete/${specializationId}`)
+        .then(() => {
+          toast.success("Specialization deleted successfully!");
+          setSpecialization(specializations.filter((s) => s.id !== specializationId));
           setLoading(false);
         })
-        .catch((error) => {
-          toast.error("An error occurred while deleting the appointment.", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
+        .catch(() => {
+          toast.error("Error deleting specialization");
           setLoading(false);
         });
     }
+  };
+
+  const handleEditHospital = (hospital) => {
+    setSelectedHospital(hospital);
+    setHospitalName(hospital.name);
+    setHospitalCity(hospital.city);
+    setHospitalAddress(hospital.address);
+    setOpenHospitalDialog(true);
   };
 
   const handleDeleteHospital = (hospitalId) => {
@@ -378,862 +308,441 @@ export default function AdminHome() {
       setLoading(true);
       axios
         .delete(`http://localhost:8080/hospitals/delete/${hospitalId}`)
-        .then((response) => {
-          toast.success("Hospital deleted successfully!", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
-         // Remove the item from the list that matches the deleted expertise ID
-          setHospitals((prevHospitals) =>
-            prevHospitals.filter((hospital) => hospital.id !== hospitalId)
-          );
+        .then(() => {
+          toast.success("Hospital deleted successfully!");
+          setHospitals(hospitals.filter((hospital) => hospital.id !== hospitalId));
           setLoading(false);
         })
-        .catch((error) => {
-          toast.error("An error occurred while deleting the hospital.", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
+        .catch(() => {
+          toast.error("Error deleting hospital");
           setLoading(false);
         });
     }
   };
 
-  const handleDeleteSpecialization = (specializationId) => {
-    if (window.confirm("Are you sure you want to delete this clinic?")) {
+  const handleSubmitHospital = () => {
+    if (!hospitalName || !hospitalCity || !hospitalAddress) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setLoading(true);
+    axios
+      .put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, { name: hospitalName, city: hospitalCity, address: hospitalAddress })
+      .then(() => {
+        toast.success("Hospital updated successfully!");
+        setLoading(false);
+        axios.get("http://localhost:8080/hospitals/all").then((response) => {
+          setHospitals(response.data);
+        });
+        setOpenHospitalDialog(false);
+      })
+      .catch(() => {
+        toast.error("Error updating hospital");
+        setLoading(false);
+      });
+  };
+
+  const handleSubmitSpecialization = () => {
+    if (!specializationName) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setLoading(true);
+    axios
+      .put(`http://localhost:8080/specializations/update/${selectedSpecialization.id}`, { name: specializationName })
+      .then(() => {
+        toast.success("Specialization updated successfully!");
+        setLoading(false);
+        axios.get("http://localhost:8080/specializations/all").then((response) => {
+          setSpecialization(response.data);
+        });
+        setOpenSpecializationDialog(false);
+      })
+      .catch(() => {
+        toast.error("Error updating specialization");
+        setLoading(false);
+      });
+  };
+
+  // Ambulance Handlers
+  const handleAddAmbulance = () => {
+    if (!ambulanceNumber || !ambulanceLocation) {
+      toast.error("Please fill all ambulance fields");
+      return;
+    }
+    setLoading(true);
+    axios
+      .post("http://localhost:8080/ambulances/add", { number: ambulanceNumber, location: ambulanceLocation })
+      .then(() => {
+        toast.success("Ambulance added successfully!");
+        setAmbulanceNumber("");
+        setAmbulanceLocation("");
+        setLoading(false);
+        axios.get("http://localhost:8080/ambulances/all").then((response) => {
+          setAmbulances(response.data);
+        });
+      })
+      .catch(() => {
+        toast.error("Error adding ambulance");
+        setLoading(false);
+      });
+  };
+
+  const handleEditAmbulance = (ambulance) => {
+    setSelectedAmbulance(ambulance);
+    setAmbulanceNumber(ambulance.number);
+    setAmbulanceLocation(ambulance.location);
+    setOpenAmbulanceDialog(true);
+  };
+
+  const handleDeleteAmbulance = (ambulanceId) => {
+    if (window.confirm("Are you sure you want to delete this ambulance?")) {
       setLoading(true);
       axios
-        .delete(
-          `http://localhost:8080/specializations/delete/${specializationId}`
-        )
-        .then((response) => {
-          toast.success("Clinic deleted successfully!", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
-        // Remove the item from the list that matches the deleted expertise ID
-          setSpecialization((prevSpecializations) =>
-            prevSpecializations.filter(
-              (specialization) => specialization.id !== specializationId
-            )
-          );
+        .delete(`http://localhost:8080/ambulances/delete/${ambulanceId}`)
+        .then(() => {
+          toast.success("Ambulance deleted successfully!");
+          setAmbulances(ambulances.filter((a) => a.id !== ambulanceId));
           setLoading(false);
         })
-        .catch((error) => {
-          toast.error("An error occurred while deleting the clinic.", {
-            position: "bottom-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
+        .catch(() => {
+          toast.error("Error deleting ambulance");
           setLoading(false);
         });
     }
   };
 
-  const handleHospitalSubmit = () => {
-    if (!hospitalName || !hospitalCity) {
-      toast.error("Please fill all fields!", {
-        position: "bottom-center",
-        autoClose: 3000,
-        hideProgressBar: true,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-      });
+  const handleSubmitAmbulance = () => {
+    if (!ambulanceNumber || !ambulanceLocation) {
+      toast.error("Please fill all ambulance fields");
       return;
     }
     setLoading(true);
     axios
-      .post("http://localhost:8080/hospitals/add", {
-        name: hospitalName,
-        city: hospitalCity,
-      })
-      .then((response) => {
-        toast.success("Hospital added successfully!", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
-        setHospitalName("");
-        setHospitalCity("");
+      .put(`http://localhost:8080/ambulances/update/${selectedAmbulance.id}`, { number: ambulanceNumber, location: ambulanceLocation })
+      .then(() => {
+        toast.success("Ambulance updated successfully!");
         setLoading(false);
-      })
-      .catch((error) => {
-        toast.error("An error occurred while adding the hospital.", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
+        axios.get("http://localhost:8080/ambulances/all").then((response) => {
+          setAmbulances(response.data);
         });
+        setOpenAmbulanceDialog(false);
+      })
+      .catch(() => {
+        toast.error("Error updating ambulance");
         setLoading(false);
       });
   };
 
-  const handleSpecializationSubmit = () => {
-    if (!specializationName) {
-      toast.error("Please fill all fields!", {
-        position: "bottom-center",
-        autoClose: 3000,
-        hideProgressBar: true,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-      });
-      return;
-    }
-    setLoading(true);
-    axios
-      .post("http://localhost:8080/specializations/add", {
-        name: specializationName,
-      })
-      .then((response) => {
-        toast.success("Clinic added successfully!", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
-        setSpecializationName("");
-        setLoading(false);
-      })
-      .catch((error) => {
-        toast.error("An error occurred while adding the hospital.", {
-          position: "bottom-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
-        setLoading(false);
-      });
-  };
+  const renderAmbulances = () => (
+    <List>
+      {ambulances.map((ambulance) => (
+        <ListItem key={ambulance.id} sx={styles.listItem}>
+          <ListItemText primary={`Number: ${ambulance.number}`} secondary={`Location: ${ambulance.location}`} />
+          <Stack direction="row" spacing={1}>
+            <Button variant="contained" color="primary" onClick={() => handleEditAmbulance(ambulance)}>
+              <Edit />
+            </Button>
+            <Button variant="contained" color="error" onClick={() => handleDeleteAmbulance(ambulance.id)}>
+              <Delete />
+            </Button>
+          </Stack>
+        </ListItem>
+      ))}
+    </List>
+  );
 
-  // Function for setting color and icon based on appointment status
-  const getStatusStyle = (status) => {
-    // If the status is empty, set it as 'unknown'
-    if (!status) {
-      return { color: "grey", icon: "question" };
-    }
-    switch (status.toLowerCase()) {
-      case "pending":
-        return { color: "orange", icon: "clock" };
-      case "confirmed":
-        return { color: "green", icon: "check" };
-      case "cancelled":
-        return { color: "red", icon: "cancel" };
-      default:
-        return { color: "grey", icon: "question" };
-    }
-  };
-
-  <div style={{ marginBottom: "1em" }}>
-  <Link to="/admin/add-ambulance" className="ui button primary">
-    Add Ambulance
-  </Link>
-</div>
-  
-  // Defining the contents of the tabs
-  const panes = [
-    {
-      menuItem: "Doctors",
-      render: () => (
-        <Tab.Pane>
-          {loading && <Loader active inline="centered" />}
-          {/* Flexbox layout for title and image */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: "30px",
-            }}
-          >
-       
-            <h2
-              style={{
-                fontSize: "2.5rem",
-                color: "#2C3E50",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-                marginRight: "15px",
-                textTransform: "uppercase",
-                borderBottom: "2px solid #3498db",
-                paddingBottom: "10px",
-              }}
-            >
-              Doctors
-            </h2>
-
-            <img
-              src={medicalteam}
-              alt="Doctors Icon"
-              style={{ width: "60px", height: "60px", objectFit: "contain" }}
-            />
-          </div>
-          <List divided verticalAlign="middle" style={styles.list}>
-            {doctors.map((user) => (
-              <List.Item key={user.id} style={styles.listItem}>
-                <Image
-                  avatar
-                  src={
-                    user.gender === "MALE"
-                      ? "https://react.semantic-ui.com/images/avatar/small/mark.png"
-                      : "https://react.semantic-ui.com/images/avatar/small/lindsay.png"
-                  }
-                />
-                <List.Content style={styles.userInfo}>
-                  <h4>
-                    {user.firstName} {user.lastName}
-                  </h4>
-                  <p style={styles.userRole}>{user.role}</p>
-                  <p style={styles.userRole}>{user.email}</p>
-                </List.Content>
-                <List.Content floated="right">
-                  <Button color="blue" onClick={() => handleEdit(user)}>
-                    Edit
-                  </Button>
-                  <Button color="red" onClick={() => handleDelete(user.id)}>
-                    Delete
-                  </Button>
-                </List.Content>
-              </List.Item>
-            ))}
-          </List>
-        </Tab.Pane>
-      ),
-    },
-    {
-      menuItem: "Patients",
-      render: () => (
-        <Tab.Pane>
-          {loading && <Loader active inline="centered" />}
-        
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: "30px",
-            }}
-          >
-           
-            <h2
-              style={{
-                fontSize: "2.5rem",
-                color: "#2C3E50",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-                marginRight: "15px", 
-                textTransform: "uppercase",
-                borderBottom: "2px solid #3498db",
-                paddingBottom: "10px",
-              }}
-            >
-              Patients
-            </h2>
-           
-            <img
-              src={examination}
-              alt="Patients Icon"
-              style={{ width: "60px", height: "60px", objectFit: "contain" }}
-            />
-          </div>
-          <List divided verticalAlign="middle" style={styles.list}>
-            {patients.map((user) => (
-              <List.Item key={user.id} style={styles.listItem}>
-                <Image
-                  avatar
-                  src={
-                    user.gender === "MALE"
-                      ? "https://react.semantic-ui.com/images/avatar/small/mark.png"
-                      : "https://react.semantic-ui.com/images/avatar/small/lindsay.png"
-                  }
-                />
-                <List.Content style={styles.userInfo}>
-                  <h4>
-                    {user.firstName} {user.lastName}
-                  </h4>
-                  <p style={styles.userRole}>{user.role}</p>
-                  <p style={styles.userRole}>{user.email}</p>
-                </List.Content>
-                <List.Content floated="right">
-                  <Button color="blue" onClick={() => handleEdit(user)}>
-                    Edit
-                  </Button>
-                  <Button color="red" onClick={() => handleDelete(user.id)}>
-                    Delete
-                  </Button>
-                </List.Content>
-              </List.Item>
-            ))}
-          </List>
-        </Tab.Pane>
-      ),
-    },
-    {
-      menuItem: "Appointments",
-      render: () => (
-        <Tab.Pane>
-          {loading && <Loader active inline="centered" />}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: "30px",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "2.5rem",
-                color: "#2C3E50",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-                marginRight: "15px",
-                textTransform: "uppercase",
-                borderBottom: "2px solid #3498db",
-                paddingBottom: "10px",
-              }}
-            >
-              Appointments
-            </h2>
-            <img
-              src={medicalappointment}
-              alt="Appointments Icon"
-              style={{ width: "60px", height: "60px", objectFit: "contain" }}
-            />
-          </div>
-          <List divided verticalAlign="middle" style={styles.appointmentList}>
-            {appointments.map((appointment) => {
-              const { color, icon } = getStatusStyle(appointment.status); // Style and icon based on status information
-              return (
-                <List.Item
-                  key={appointment.id}
-                  style={{
-                    ...styles.appointmentItem,
-                    backgroundColor: "#f9f9f9", // Light gray background
-                    borderRadius: "10px", // Rounded corners
-                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)", // Subtle shadow
-                    transition: "all 0.3s ease-in-out", // Smooth transition animation
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.05)"; // Enlargement on hover
-                    e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.2)"; // Hover shadow effect
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)"; // Restore original size after hover
-                    e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)"; // Normal shadow effect
-                  }}
-                >
-                  <Grid>
-                    <Grid.Row columns={3}>
-                      <Grid.Column>
-                        <p>
-                          <strong>Date: </strong>
-                          {appointment.day} at {appointment.time}
-                        </p>
-                        <p>
-                          <strong>Hospital: </strong>
-                          {appointment.doctor.hospital.name}
-                        </p>
-                        <p>
-                          <strong>Clinic: </strong>
-                          {appointment.doctor.specialization.name}
-                        </p>
-                      </Grid.Column>
-                      <Grid.Column
-                        style={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <p>
-                          <strong>Doctor:</strong>
-                          {appointment.doctor.user.firstName}{" "}
-                          {appointment.doctor.user.lastName}
-                        </p>
-                        <p>
-                          <strong>Patient:</strong>
-                          {appointment.patient.user.firstName}{" "}
-                          {appointment.patient.user.lastName}
-                        </p>
-                      </Grid.Column>
-                      <Grid.Column textAlign="right">
-                        <Label
-                          color={color}
-                          size="large"
-                          style={{
-                            padding: "10px 15px",
-                            fontSize: "1rem",
-                            borderRadius: "5px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          <Icon name={icon} /> {appointment.status || "Unknown"}
-                        </Label>
-                        <Button
-                          color="red"
-                          icon="trash"
-                          size="small"
-                          style={{
-                            marginTop: "10px",
-                            transition: "all 0.3s ease-in-out",
-                          }}
-                          onClick={() =>
-                            handleDeleteAppointment(appointment.id)
-                          }
-                          onMouseEnter={(e) =>
-                            (e.target.style.transform = "scale(1.1)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.target.style.transform = "scale(1)")
-                          }
-                        />
-                      </Grid.Column>
-                    </Grid.Row>
-                  </Grid>
-                </List.Item>
-              );
-            })}
-          </List>
-        </Tab.Pane>
-      ),
-    },
-    {
-      menuItem: "Hospitals",
-      render: () => (
-        <Tab.Pane>
-          {loading && <Loader active inline="centered" />}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: "30px",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "2.5rem",
-                color: "#2C3E50",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-                marginRight: "15px",
-                textTransform: "uppercase",
-                borderBottom: "2px solid #3498db",
-                paddingBottom: "10px",
-              }}
-            >
-              Hospitals
-            </h2>
-            <img
-              src={hospital}
-              alt="Hospitals Icon"
-              style={{
-                width: "60px",
-                height: "60px",
-                objectFit: "contain",
-                transition: "all 0.3s ease",
-              }}
-            />
-          </div>
-
-          {/* Modal for editing hospital */}
-          <Modal open={!!selectedHospital} onClose={handleCloseHospital}>
-            <Modal.Header>Edit Hospital</Modal.Header>
-            <Modal.Content>
-              <Form>
-                <Form.Input
+  return (
+    <Container sx={{ mt: 4 }}>
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid container justifyContent="space-between" alignItems="center">
+          <Typography variant="h4">Admin Dashboard</Typography>
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" color="primary" onClick={handleBack} startIcon={<ArrowBack />}>
+              Back
+            </Button>
+            <Button variant="outlined" color="error" onClick={handleLogout} startIcon={<Logout />}>
+              Logout
+            </Button>
+          </Stack>
+        </Grid>
+        <Box sx={{ mt: 2 }}>
+          <Tabs value={activeTab} onChange={(e, newVal) => setActiveTab(newVal)}>
+            <Tab label="Doctors" />
+            <Tab label="Patients" />
+            <Tab label="Appointments" />
+            <Tab label="Hospitals" />
+            <Tab label="Add Hospital" />
+            <Tab label="Specializations" />
+            <Tab label="Add Specialization" />
+            {/* Removed <Tab label="Ambulances" /> */}
+            <Tab label="Add Ambulance" /> {/* This tab is now at index 7 */}
+          </Tabs>
+          <Box sx={{ mt: 2 }}>
+            {loading && <CircularProgress />}
+            {activeTab === 0 && renderUsers(doctors)}
+            {activeTab === 1 && renderUsers(patients)}
+            {activeTab === 2 && renderAppointments()}
+            {activeTab === 3 && (
+              <List>
+                {hospitals.map((hospital) => (
+                  <ListItem key={hospital.id} sx={styles.listItem}>
+                    <ListItemText primary={hospital.name} secondary={`${hospital.city} | ${hospital.address}`} />
+                    <Stack direction="row" spacing={1}>
+                      <Button variant="contained" color="primary" onClick={() => handleEditHospital(hospital)}>
+                        <Edit />
+                      </Button>
+                      <Button variant="contained" color="error" onClick={() => handleDeleteHospital(hospital.id)}>
+                        <Delete />
+                      </Button>
+                    </Stack>
+                  </ListItem>
+                ))}
+                {/* Display ambulances list below hospitals when on Hospitals tab */}
+                <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Ambulances</Typography>
+                {renderAmbulances()}
+              </List>
+            )}
+            {activeTab === 4 && (
+              <Box component="form" onSubmit={handleHospitalSubmit}>
+                <TextField
                   label="Hospital Name"
                   value={hospitalName}
                   onChange={(e) => setHospitalName(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
                 />
-                <Form.Input
+                <TextField
                   label="City"
                   value={hospitalCity}
                   onChange={(e) => setHospitalCity(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
                 />
-                <Button color="green" onClick={handleSubmitHospital}>
-                  Save
+                <TextField
+                  label="Address"
+                  value={hospitalAddress}
+                  onChange={(e) => setHospitalAddress(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
+                />
+                <Button type="submit" variant="contained" color="primary">
+                  Add Hospital
                 </Button>
-                <Button color="red" onClick={handleCloseHospital}>
-                  Cancel
-                </Button>
-              </Form>
-            </Modal.Content>
-          </Modal>
-
-          {/* Hospital list */}
-          <List divided verticalAlign="middle" style={styles.list}>
-            {hospitals.map((hospital) => (
-              <List.Item
-                key={hospital.id}
-                style={{
-                  ...styles.listItem,
-                  borderRadius: "10px",
-                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                  transition: "transform 0.3s ease",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.transform = "scale(1.05)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.transform = "scale(1)")
-                }
-              >
-                <List.Content style={{ padding: "20px" }}>
-                  <h4 style={{ color: "#2980b9" }}>{hospital.name}</h4>
-                  <p>{hospital.city}</p>
-                </List.Content>
-                <List.Content
-                  floated="right"
-                  style={{ display: "flex", gap: "10px", marginLeft: "auto" }}
-                >
-                  <Button
-                    color="blue"
-                    onClick={() => handleEditHospital(hospital)}
-                    style={{
-                      transition: "all 0.3s ease",
-                      marginBottom: "10px",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.transform = "scale(1.1)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.transform = "scale(1)")
-                    }
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    color="red"
-                    onClick={() => handleDeleteHospital(hospital.id)}
-                    style={{
-                      transition: "all 0.3s ease",
-                      marginBottom: "10px",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.transform = "scale(1.1)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.transform = "scale(1)")
-                    }
-                  >
-                    Delete
-                  </Button>
-                </List.Content>
-              </List.Item>
-            ))}
-          </List>
-        </Tab.Pane>
-      ),
-    },
-    {
-      menuItem: "Add Hospital",
-      render: () => (
-        <Tab.Pane>
-          <Form onSubmit={handleHospitalSubmit}>
-            <Form.Input
-              label="Hospital Name"
-              placeholder="Enter hospital name"
-              value={hospitalName}
-              onChange={(e) => setHospitalName(e.target.value)}
-            />
-            <Form.Input
-              label="Hospital City"
-              placeholder="Enter hospital city"
-              value={hospitalCity}
-              onChange={(e) => setHospitalCity(e.target.value)}
-            />
-            <Form.Button color="green">Add Hospital</Form.Button>
-          </Form>
-        </Tab.Pane>
-      ),
-    },
-    {
-      menuItem: "Clinics",
-      render: () => (
-        <Tab.Pane>
-          {loading && <Loader active inline="centered" />}
-          
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: "30px",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "2.5rem",
-                color: "#2C3E50",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-                marginRight: "15px",
-                textTransform: "uppercase",
-                borderBottom: "2px solid #3498db",
-                paddingBottom: "10px",
-              }}
-            >
-              Clinics
-            </h2>
-          
-            <img
-              src={clinic}
-              alt="Patients Icon"
-              style={{ width: "60px", height: "60px", objectFit: "contain" }}
-            />
-          </div>
-
-          {/* Modal for adding/editing specialization */}
-          <Modal
-            open={!!selectedSpecialization}
-            onClose={handleCloseSpecialization}
-          >
-            <Modal.Header>Edit Clinic</Modal.Header>
-            <Modal.Content>
-              <Form>
-                <Form.Input
-                  label="Clinic Name"
+              </Box>
+            )}
+            {activeTab === 5 && (
+              <Box>
+                <Typography variant="h6">Specializations</Typography>
+                <List>
+                  {specializations.map((specialization) => (
+                    <ListItem key={specialization.id} sx={styles.listItem}>
+                      <ListItemText primary={specialization.name} />
+                      <Stack direction="row" spacing={1}>
+                        <Button variant="contained" color="primary" onClick={() => handleEditSpecialization(specialization)}>
+                          <Edit />
+                        </Button>
+                        <Button variant="contained" color="error" onClick={() => handleDeleteSpecialization(specialization.id)}>
+                          <Delete />
+                        </Button>
+                      </Stack>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+            {activeTab === 6 && (
+              <Box component="form" onSubmit={handleSpecializationSubmit}>
+                <TextField
+                  label="Specialization Name"
                   value={specializationName}
                   onChange={(e) => setSpecializationName(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
                 />
-                <Button color="green" onClick={handleSubmitSpecialization}>
-                  Save
+                <Button type="submit" variant="contained" color="primary">
+                  Add Specialization
                 </Button>
-                <Button color="red" onClick={handleCloseSpecialization}>
-                  Cancel
+              </Box>
+            )}
+            {/* activeTab === 7 now corresponds to "Add Ambulance" */}
+            {activeTab === 7 && (
+              <Box component="form" onSubmit={handleAddAmbulance}>
+                <TextField
+                  label="Ambulance Number"
+                  value={ambulanceNumber}
+                  onChange={(e) => setAmbulanceNumber(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
+                />
+                <TextField
+                  label="Ambulance Location"
+                  value={ambulanceLocation}
+                  onChange={(e) => setAmbulanceLocation(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  required
+                />
+                <Button type="submit" variant="contained" color="primary">
+                  Add Ambulance
                 </Button>
-              </Form>
-            </Modal.Content>
-          </Modal>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Paper>
 
-          {/* Specialization cards */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            {specializations.map((specialization) => (
-              <div
-                key={specialization.id}
-                style={{
-                  ...styles.card,
-                  margin: "10px",
-                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                  borderRadius: "15px",
-                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.transform = "scale(1.05)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.transform = "scale(1)")
-                }
-              >
-                <div style={{ padding: "20px" }}>
-                  <h4 style={{ color: "#2980b9" }}>{specialization.name}</h4>
-                </div>
-                <div style={{ padding: "10px", textAlign: "center" }}>
-                  <Button
-                    color="blue"
-                    onClick={() => handleEditSpecialization(specialization)}
-                    style={{
-                      marginBottom: "10px",
-                      transition: "transform 0.3s ease",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#2980b9")
-                    } 
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#3498db")
-                    } 
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    color="red"
-                    onClick={() =>
-                      handleDeleteSpecialization(specialization.id)
-                    }
-                    style={{
-                      transition: "transform 0.3s ease",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.transform = "scale(1.1)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.transform = "scale(1)")
-                    }
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Tab.Pane>
-      ),
-    },
-
-    {
-      menuItem: "Add Clinic",
-      render: () => (
-        <Tab.Pane>
-          <Form onSubmit={handleSpecializationSubmit}>
-            <Form.Input
-              label="Clinic Name"
-              placeholder="Enter clinic name"
-              value={specializationName}
-              onChange={(e) => setSpecializationName(e.target.value)}
-            />
-            <Form.Button color="green">Add Clinic</Form.Button>
-          </Form>
-        </Tab.Pane>
-      ),
-    },
-  ];
-
-  return (
-    <Container style={styles.container}>
-      <Segment raised>
-        <Grid>
-          <Grid.Row columns={2}>
-            <Grid.Column>
-              <h2>Admin Dashboard</h2>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
-      </Segment>
-
-    {/* Displaying the tabs */}
-      <Tab
-        panes={panes}
-        activeIndex={activeTab}
-        onTabChange={(e, { activeIndex }) => setActiveTab(activeIndex)}
-        menu={{ fluid: true, vertical: true, tabular: true }} // Dikey menü
-      />
-
-      {/* Edit Modal */}
-      <Modal open={open} onClose={handleClose}>
-        <Modal.Header>Edit User</Modal.Header>
-        <Modal.Content>
-          <Form>
-            <Form.Input
-              label="First Name"
-              name="firstName"
-              value={selectedUser?.firstName || ""}
-              onChange={handleChange}
-            />
-            <Form.Input
-              label="Last Name"
-              name="lastName"
-              value={selectedUser?.lastName || ""}
-              onChange={handleChange}
-            />
-            <Form.Input
-              label="Email"
-              name="email"
-              value={selectedUser?.email || ""}
-              onChange={handleChange}
-            />
-            <Form.Input
-              label="Role"
-              name="role"
-              value={selectedUser?.role || ""}
-              onChange={handleChange}
-            />
-            <Form.Button color="green" onClick={handleSubmit}>
+      {/* Dialog for editing hospitals */}
+      <Dialog open={openHospitalDialog} onClose={() => setOpenHospitalDialog(false)}>
+        <DialogTitle>Edit Hospital</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Hospital Name"
+            value={hospitalName}
+            onChange={(e) => setHospitalName(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            margin="dense"
+            label="City"
+            value={hospitalCity}
+            onChange={(e) => setHospitalCity(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            margin="dense"
+            label="Address"
+            value={hospitalAddress}
+            onChange={(e) => setHospitalAddress(e.target.value)}
+            fullWidth
+          />
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <Button variant="contained" color="primary" onClick={handleSubmitHospital}>
               Save
-            </Form.Button>
-          </Form>
-        </Modal.Content>
-      </Modal>
+            </Button>
+            <Button variant="outlined" onClick={() => setOpenHospitalDialog(false)}>
+              Cancel
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
 
-      {/* ToastContainer - Displays toast notifications on the screen */}
-      <ToastContainer
-        position="bottom-center"
-        autoClose={3000}
-        hideProgressBar
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        className="toast-container"
-      />
-      <div style={{ marginBottom: "1em" }}>
-        <Link to="/admin/add-ambulance" className="ui button primary">
-          Add Ambulance
-        </Link>
-      </div>
+      {/* Dialog for editing specializations */}
+      <Dialog open={openSpecializationDialog} onClose={() => setOpenSpecializationDialog(false)}>
+        <DialogTitle>Edit Specialization</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Specialization Name"
+            value={specializationName}
+            onChange={(e) => setSpecializationName(e.target.value)}
+            fullWidth
+          />
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <Button variant="contained" color="primary" onClick={handleSubmitSpecialization}>
+              Save
+            </Button>
+            <Button variant="outlined" onClick={() => setOpenSpecializationDialog(false)}>
+              Cancel
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for editing ambulances */}
+      <Dialog open={openAmbulanceDialog} onClose={() => setOpenAmbulanceDialog(false)}>
+        <DialogTitle>Edit Ambulance</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Ambulance Number"
+            value={ambulanceNumber}
+            onChange={(e) => setAmbulanceNumber(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            margin="dense"
+            label="Ambulance Location"
+            value={ambulanceLocation}
+            onChange={(e) => setAmbulanceLocation(e.target.value)}
+            fullWidth
+          />
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <Button variant="contained" color="primary" onClick={handleSubmitAmbulance}>
+              Save
+            </Button>
+            <Button variant="outlined" onClick={() => setOpenAmbulanceDialog(false)}>
+              Cancel
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+     <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Edit User</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="First Name"
+            name="firstName"
+            fullWidth
+            value={selectedUser ?.firstName || ""}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Last Name"
+            name="lastName"
+            fullWidth
+            value={selectedUser ?.lastName || ""}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Email"
+            name="email"
+            type="email"
+            fullWidth
+            value={selectedUser ?.email || ""}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Role"
+            name="role"
+            fullWidth
+            value={selectedUser ?.role || ""}
+            onChange={handleChange}
+          />
+
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <Button variant="contained" color="primary" onClick={handleSubmit}>
+              Save
+            </Button>
+            <Button variant="outlined" onClick={handleClose}>
+              Cancel
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      <ToastContainer position="bottom-center" autoClose={3000} />
     </Container>
   );
 }
 
 const styles = {
-  container: {
-    marginTop: "2em",
-    padding: "20px",
-  },
-  list: {
-    marginTop: "20px",
-  },
   listItem: {
-    marginBottom: "15px",
-    padding: "10px",
-    borderRadius: "8px",
-    backgroundColor: "#f9f9f9",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-  },
-  userInfo: {
-    marginLeft: "15px",
-    fontSize: "16px",
-  },
-  userRole: {
-    color: "#888",
-    fontStyle: "italic",
-  },
-  appointmentList: {
-    marginTop: "20px",
-  },
-  appointmentItem: {
-    marginBottom: "15px",
-    padding: "15px",
-    borderRadius: "8px",
-    backgroundColor: "#f4f4f4",
+    mb: 2,
+    p: 2,
+    borderRadius: 2,
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    backgroundColor: "#f9f9f9",
   },
-
-  
 };
