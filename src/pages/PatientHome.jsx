@@ -14,6 +14,7 @@ import Spinner from 'react-bootstrap/Spinner';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Tab from 'react-bootstrap/Tab';
+import TextField from '@mui/material/TextField';
 
 // Material-UI Imports (for specific components like Select/TextField if needed, or Typography)
 import FormControl from '@mui/material/FormControl';
@@ -62,8 +63,13 @@ const PatientHome = () => {
   const [ambulanceNumber, setAmbulanceNumber] = useState("");
   const [ambulanceLocation, setAmbulanceLocation] = useState("");
   const [ambulanceNotes, setAmbulanceNotes] = useState("");
-  const [ambulanceBookingSuccess, setAmbulanceBookingSuccess] = useState(false);
-  const [ambulanceMessage, setAmbulanceMessage] = useState("");
+
+  const [patientName, setPatientName] = useState("");
+const [pickupLocation, setPickupLocation] = useState("");
+const [dropLocation, setDropLocation] = useState("");
+const [ambulanceType, setAmbulanceType] = useState("");
+const [ambulanceBookingSuccess, setAmbulanceBookingSuccess] = useState(false);
+const [ambulanceMessage, setAmbulanceMessage] = useState("");
 
   const navigate = useNavigate();
 
@@ -332,60 +338,62 @@ const PatientHome = () => {
   };
 
   const handleAmbulanceBooking = async () => {
+  setAmbulanceBookingSuccess(false);
+  setAmbulanceMessage("");
+
+  if (!ambulanceType || !pickupLocation || !dropLocation || !patientName) {
+    setAmbulanceMessage("Please fill in all booking fields.");
+    return;
+  }
+
+  try {
+    // Step 1: Get available ambulances of selected type
+    const availableRes = await axios.get(
+      `http://localhost:8080/api/ambulances/available?type=${ambulanceType}`
+    );
+
+    const availableAmbulances = availableRes.data;
+    if (!availableAmbulances.length) {
+      setAmbulanceMessage("No ambulances available for selected type.");
+      return;
+    }
+
+    // Step 2: Pick the first available ambulance for booking
+    const selectedAmbulance = availableAmbulances[0];
+
+    const bookingData = {
+      patientName: patientName,
+      pickupLocation: pickupLocation,
+      dropLocation: dropLocation,
+      ambulanceId: selectedAmbulance.id,
+    };
+
+    // Step 3: Send booking request
+    const bookingRes = await axios.post("http://localhost:8080/api/booking", bookingData);
+
+    if (bookingRes.status === 200 || bookingRes.status === 201) {
+      setAmbulanceBookingSuccess(true);
+      setAmbulanceMessage("Ambulance booked successfully!");
+      alert("Ambulance Booked Successfully!");
+      setPatientName("");
+      setPickupLocation("");
+      setDropLocation("");
+      setAmbulanceType("");
+    }
+  } catch (error) {
+    console.error("Error booking ambulance:", error);
     setAmbulanceBookingSuccess(false);
-    setAmbulanceMessage("");
-
-    if (!userData || !userData.patientId) {
-      setAmbulanceMessage("User information (Patient ID) could not be loaded. Please log in again.");
-      return;
+    let msg = "An unknown error occurred. Please try again.";
+    if (error.response?.data?.message) {
+      msg = error.response.data.message;
+    } else if (error.response?.data) {
+      msg = JSON.stringify(error.response.data);
+    } else if (error.message) {
+      msg = error.message;
     }
-
-    const patientId = userData.patientId;
-    if (!ambulanceLocation) {
-      setAmbulanceMessage("Please provide your current location to book an ambulance.");
-      return;
-    }
-
-    try {
-      const ambulanceData = {
-        patientId: patientId,
-        ambulanceNumber: ambulanceNumber,
-        location: ambulanceLocation,
-        notes: ambulanceNotes,
-      };
-
-      const response = await axios.post(
-        "http://localhost:8080/api/ambulance-bookings/book",
-        ambulanceData
-      );
-
-      if (response.status === 200 || response.status === 201) {
-        setAmbulanceBookingSuccess(true);
-        setAmbulanceMessage("Your ambulance request has been sent successfully!");
-        setAmbulanceNumber("");
-        setAmbulanceLocation("");
-        setAmbulanceNotes("");
-      }
-    } catch (error) {
-      console.error("Error during ambulance booking:", error);
-      setAmbulanceBookingSuccess(false);
-      let msg = "An unknown error occurred. Please try again.";
-      if (error.response) {
-        if (typeof error.response.data === 'string') {
-            msg = error.response.data;
-        } else if (error.response.data && error.response.data.message) {
-            msg = error.response.data.message;
-        } else if (error.response.data) {
-            msg = JSON.stringify(error.response.data);
-        }
-        setAmbulanceMessage(`Failed to book ambulance: ${msg}`);
-      } else if (error.request) {
-        setAmbulanceMessage("No response from server for ambulance booking. Please check your network connection.");
-      } else {
-        setAmbulanceMessage(`An error occurred during ambulance request: ${error.message}.`);
-      }
-    }
-  };
+    setAmbulanceMessage(`Booking failed: ${msg}`);
+  }
+};
 
   useEffect(() => {
     if (specialization) {
@@ -655,61 +663,62 @@ const PatientHome = () => {
           <Tab.Pane eventKey="bookAmbulance">
             <Card className="shadow-sm p-4 mb-4">
               <Card.Body>
-                <Typography variant="h5" component="h2" className="text-center mb-4">
-                  Book Ambulance <img src={ambulanceIcon} alt="ambulance logo" style={{ width: "40px", height: "35px", marginLeft: "10px" }} />
-                </Typography>
+               <Box component="form" onSubmit={(e) => { e.preventDefault(); handleAmbulanceBooking(); }}>
+  <TextField
+    label="Patient Name"
+    value={patientName}
+    onChange={(e) => setPatientName(e.target.value)}
+    fullWidth
+    margin="normal"
+    required
+  />
+  <TextField
+    label="Pickup Location"
+    value={pickupLocation}
+    onChange={(e) => setPickupLocation(e.target.value)}
+    fullWidth
+    margin="normal"
+    required
+  />
+  <TextField
+    label="Drop Location"
+    value={dropLocation}
+    onChange={(e) => setDropLocation(e.target.value)}
+    fullWidth
+    margin="normal"
+    required
+  />
+  <TextField
+    select
+    label="Ambulance Type"
+    value={ambulanceType}
+    onChange={(e) => setAmbulanceType(e.target.value)}
+    fullWidth
+    margin="normal"
+    required
+  >
+    <MenuItem value="BASIC">Basic</MenuItem>
+    <MenuItem value="ADVANCED">Advanced</MenuItem>
+    <MenuItem value="NEONATAL">Neonatal</MenuItem>
+    <MenuItem value="ICU">ICU</MenuItem>
+  </TextField>
+  <Button type="submit" variant="contained" color="red">
+  Book Ambulance
+</Button>
 
-                <Form>
-                  {ambulanceMessage && (
-                    <Alert variant={ambulanceBookingSuccess ? "success" : "warning"}>
-                      {ambulanceBookingSuccess ? "Ambulance Request Sent" : "Ambulance Request Failed"}: {ambulanceMessage}
-                    </Alert>
-                  )}
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Ambulance Number (Optional)</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g., AB1234"
-                      value={ambulanceNumber}
-                      onChange={(e) => setAmbulanceNumber(e.target.value)}
-                    />
-                  </Form.Group>
+  {ambulanceMessage && (
+    <p style={{ color: ambulanceBookingSuccess ? "green" : "red" }}>
+      {ambulanceMessage}
+    </p>
+  )}
+</Box>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Current Location <span className="text-danger">*</span></Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g., 123 Main St, City"
-                      value={ambulanceLocation}
-                      onChange={(e) => { setAmbulanceLocation(e.target.value); setAmbulanceBookingSuccess(false); setAmbulanceMessage(""); }}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Additional Notes (Optional)</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      placeholder="e.g., Patient has difficulty breathing."
-                      value={ambulanceNotes}
-                      onChange={(e) => setAmbulanceNotes(e.target.value)}
-                    />
-                  </Form.Group>
-
-                <Button
-                    variant="primary"
-                    className="w-100 mt-3"
-                    onClick={handleAmbulanceBooking}
-                    disabled={!ambulanceLocation}
-                  >
-                    Request Ambulance
-                  </Button>
-                </Form>
               </Card.Body>
             </Card>
           </Tab.Pane>
+
+
         </Tab.Content>
       </Tab.Container>
 

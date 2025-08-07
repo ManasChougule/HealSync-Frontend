@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { MenuItem } from "@mui/material";
 import {
   Container,
   Grid,
@@ -29,9 +30,10 @@ import "react-toastify/dist/ReactToastify.css";
 
 export default function AdminHome() {
   const navigate = useNavigate();
+  // Ensure all list states are initialized to empty arrays
   const [users, setUsers] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  const [selectedUser , setSelectedUser ] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -41,123 +43,170 @@ export default function AdminHome() {
   const [specializations, setSpecialization] = useState([]);
   const [hospitalName, setHospitalName] = useState("");
   const [hospitalCity, setHospitalCity] = useState("");
+  const [ambulanceType, setAmbulanceType] = useState("");
   const [hospitalAddress, setHospitalAddress] = useState("");
   const [specializationName, setSpecializationName] = useState("");
-  const [selectedHospital, setSelectedHospital] = useState(null);
-  const [selectedSpecialization, setSelectedSpecialization] = useState(null);
+  const [selectedHospital, setSelectedHospital] = useState(null); // Initialize to null, but handle carefully
+  const [selectedSpecialization, setSelectedSpecialization] = useState(null); // Initialize to null, but handle carefully
   const [openHospitalDialog, setOpenHospitalDialog] = useState(false);
   const [openSpecializationDialog, setOpenSpecializationDialog] = useState(false);
 
-  // New states for Ambulance management
-  const [ambulances, setAmbulances] = useState([]);
-  const [selectedAmbulance, setSelectedAmbulance] = useState(null);
-  const [openAmbulanceDialog, setOpenAmbulanceDialog] = useState(false);
-  const [ambulanceNumber, setAmbulanceNumber] = useState("");
-  const [ambulanceLocation, setAmbulanceLocation] = useState("");
+  // States for Ambulance management (ONLY for adding)
+  const [ambulanceContactNumber, setAmbulanceContactNumber] = useState("");
+  const [ambulanceDriverName, setAmbulanceDriverName] = useState("");
+  const [ambulanceRegistrationNumber, setAmbulanceRegistrationNumber] = useState("");
+  const [ambulanceStatus, setAmbulanceStatus] = useState("");
 
-  // Load users
+  // Helper function to safely get array data from API response
+  // Added more robust checks and logging
+  const getArrayFromResponse = (data, endpointName = "unknown") => {
+    if (data === null || data === undefined) {
+      console.warn(`[${endpointName}] API response data was NULL or UNDEFINED. Returning empty array.`);
+      return [];
+    }
+    if (!Array.isArray(data)) {
+      console.warn(`[${endpointName}] API response data was NOT an array. Type: ${typeof data}. Value:`, data, `. Returning empty array.`);
+      return [];
+    }
+    return data;
+  };
+
+  // Load users (doctors and patients)
   useEffect(() => {
-    setLoading(true);
-    axios
-      .get("http://localhost:8080/registration/all?role=ADMIN")
-      .then((response) => {
-        const allUsers = response.data;
-        setDoctors(allUsers.filter((user) => user.role === "DOCTOR"));
-        setPatients(allUsers.filter((user) => user.role === "PATIENT"));
-        setLoading(false);
-      })
-      .catch(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get("http://localhost:8080/registration/all?role=ADMIN");
+        console.log("[Users Fetch] Raw API response data:", response.data); // Debugging log
+        const allUsers = getArrayFromResponse(response.data, "users");
+
+        // Ensure allUsers is an array before filtering
+        if (Array.isArray(allUsers)) {
+          setDoctors(allUsers.filter((user) => user.role === "DOCTOR"));
+          setPatients(allUsers.filter((user) => user.role === "PATIENT"));
+          setUsers(allUsers); // Update the general users state too if needed elsewhere
+        } else {
+          console.error("[Users Fetch] getArrayFromResponse returned non-array for users.");
+          setDoctors([]);
+          setPatients([]);
+          setUsers([]);
+        }
+      } catch (error) {
         toast.error("Error fetching users");
+        console.error("Error fetching users:", error.response ? error.response.data : error.message);
+        setDoctors([]);
+        setPatients([]);
+        setUsers([]);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    fetchUsers();
   }, []);
 
   // Load appointments
   useEffect(() => {
-    setLoading(true);
-    axios
-      .get("http://localhost:8080/registration/appointments?role=ADMIN")
-      .then((response) => {
-        setAppointments(response.data);
-        setLoading(false);
-      })
-      .catch(() => {
+    const fetchAppointments = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get("http://localhost:8080/registration/appointments?role=ADMIN");
+        console.log("[Appointments Fetch] Raw API response data:", response.data); // Debugging log
+        setAppointments(getArrayFromResponse(response.data, "appointments"));
+      } catch (error) {
         toast.error("Error fetching appointments");
+        console.error("Error fetching appointments:", error.response ? error.response.data : error.message);
+        setAppointments([]);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    fetchAppointments();
   }, []);
 
   // Load hospitals
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/hospitals/all")
-      .then((response) => {
-        setHospitals(response.data);
-      })
-      .catch(() => {
+    const fetchHospitals = async () => {
+      try {
+        const response = await axios.get("http://localhost:8080/hospitals/all");
+        console.log("[Hospitals Fetch] Raw API response data:", response.data); // Debugging log
+        setHospitals(getArrayFromResponse(response.data, "hospitals"));
+      } catch (error) {
         toast.error("Error fetching hospitals");
-      });
+        console.error("Error fetching hospitals:", error.response ? error.response.data : error.message);
+        setHospitals([]);
+      }
+    };
+    fetchHospitals();
   }, []);
 
   // Load specializations
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/specializations/all")
-      .then((response) => {
-        setSpecialization(response.data);
-      })
-      .catch(() => {
+    const fetchSpecializations = async () => {
+      try {
+        const response = await axios.get("http://localhost:8080/specializations/all");
+        console.log("[Specializations Fetch] Raw API response data:", response.data); // Debugging log
+        setSpecialization(getArrayFromResponse(response.data, "specializations"));
+      } catch (error) {
         toast.error("Error fetching specializations");
-      });
+        console.error("Error fetching specializations:", error.response ? error.response.data : error.message);
+        setSpecialization([]);
+      }
+    };
+    fetchSpecializations();
   }, []);
 
-
+  // Removed: useEffect for fetching ambulances, as per "not fetching data of ambulances"
 
   const handleEdit = (user) => {
-    setSelectedUser (user);
+    setSelectedUser(user);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setSelectedUser (null);
+    setSelectedUser(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setLoading(true);
-    axios
-      .put(`http://localhost:8080/registration/update/${selectedUser .id}`, selectedUser )
-      .then(() => {
-        toast.success("User  updated successfully!");
-        setUsers(users.map((user) => (user.id === selectedUser .id ? selectedUser  : user)));
-        setLoading(false);
-        handleClose();
-      })
-      .catch(() => {
-        toast.error("Error updating user");
-        setLoading(false);
-      });
+    try {
+      await axios.put(`http://localhost:8080/registration/update/${selectedUser.id}`, selectedUser);
+      toast.success("User updated successfully!");
+      // Re-fetch users to ensure lists are fully updated after an edit
+      // Or, more efficiently, update the specific user in the state
+      if (selectedUser.role === "DOCTOR") {
+        setDoctors(doctors.map((user) => (user.id === selectedUser.id ? selectedUser : user)));
+      } else if (selectedUser.role === "PATIENT") {
+        setPatients(patients.map((user) => (user.id === selectedUser.id ? selectedUser : user)));
+      }
+      handleClose();
+    } catch (error) {
+      toast.error("Error updating user");
+      console.error("Error updating user:", error.response ? error.response.data : error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setSelectedUser ({ ...selectedUser , [name]: value });
+    setSelectedUser({ ...selectedUser, [name]: value });
   };
 
-  const handleDelete = (userId) => {
+  const handleDelete = async (userId) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       setLoading(true);
-      axios
-        .delete(`http://localhost:8080/registration/delete/${userId}`)
-        .then(() => {
-          toast.success("User  deleted successfully!");
-          setUsers(users.filter((user) => user.id !== userId));
-          setLoading(false);
-        })
-        .catch(() => {
-          toast.error("Error deleting user");
-          setLoading(false);
-        });
+      try {
+        await axios.delete(`http://localhost:8080/registration/delete/${userId}`);
+        toast.success("User deleted successfully!");
+        setDoctors(doctors.filter((user) => user.id !== userId));
+        setPatients(patients.filter((user) => user.id !== userId));
+      } catch (error) {
+        toast.error("Error deleting user");
+        console.error("Error deleting user:", error.response ? error.response.data : error.message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -168,7 +217,7 @@ export default function AdminHome() {
   };
 
   const handleBack = () => {
-    navigate(-1); // Navigates to the previous page in the history stack
+    navigate(-1);
   };
 
   const getStatusIcon = (status) => {
@@ -184,92 +233,99 @@ export default function AdminHome() {
     }
   };
 
-  const renderUsers = (userList) => (
-    <List>
-      {userList.map((user) => (
-        <ListItem key={user.id} sx={styles.listItem}>
-          <ListItemAvatar>
-            <Avatar src={user.gender === "MALE" ? "/male.png" : "/female.png"} />
-          </ListItemAvatar>
-          <ListItemText
-            primary={`${user.firstName} ${user.lastName}`}
-            secondary={`${user.role} | ${user.email}`}
-          />
-          <Stack direction="row" spacing={1}>
-            <Button variant="contained" color="primary" onClick={() => handleEdit(user)}>
-              <Edit />
-            </Button>
-            <Button variant="contained" color="error" onClick={() => handleDelete(user.id)}>
-              <Delete />
-            </Button>
-          </Stack>
-        </ListItem>
-      ))}
-    </List>
-  );
+  const renderUsers = (userList) => {
+    console.log("[renderUsers] userList:", userList); // Debugging log
+    return (
+      <List>
+        {Array.isArray(userList) && userList.map((user) => (
+          <ListItem key={user.id} sx={styles.listItem}>
+            <ListItemAvatar>
+              <Avatar src={user.gender === "MALE" ? "/male.png" : "/female.png"} />
+            </ListItemAvatar>
+            <ListItemText
+              primary={`${user.firstName || ''} ${user.lastName || ''}`} // Defensive access
+              secondary={`${user.role || ''} | ${user.email || ''}`} // Defensive access
+            />
+            <Stack direction="row" spacing={1}>
+              <Button variant="contained" color="primary" onClick={() => handleEdit(user)}>
+                <Edit />
+              </Button>
+              <Button variant="contained" color="error" onClick={() => handleDelete(user.id)}>
+                <Delete />
+              </Button>
+            </Stack>
+          </ListItem>
+        ))}
+      </List>
+    );
+  };
 
-  const renderAppointments = () => (
-    <List>
-      {appointments.map((appointment) => (
-        <ListItem key={appointment.id} sx={styles.listItem}>
-          <ListItemText
-            primary={`Date: ${appointment.day} at ${appointment.time}`}
-            secondary={`Doctor: ${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName} | Patient: ${appointment.patient.user.firstName} ${appointment.patient.user.lastName}`}
-          />
-          <Chip
-            icon={getStatusIcon(appointment.status)}
-            label={appointment.status || "Unknown"}
-            variant="outlined"
-          />
-        </ListItem>
-      ))}
-    </List>
-  );
+  const renderAppointments = () => {
+    console.log("[renderAppointments] appointments:", appointments); // Debugging log
+    return (
+      <List>
+        {Array.isArray(appointments) && appointments.map((appointment) => (
+          <ListItem key={appointment.id} sx={styles.listItem}>
+            <ListItemText
+              primary={`Date: ${appointment.day || 'N/A'} at ${appointment.time || 'N/A'}`}
+              secondary={`Doctor: ${appointment.doctor?.user?.firstName || 'N/A'} ${appointment.doctor?.user?.lastName || 'N/A'} | Patient: ${appointment.patient?.user?.firstName || 'N/A'} ${appointment.patient?.user?.lastName || 'N/A'}`}
+            />
+            <Chip
+              icon={getStatusIcon(appointment.status)}
+              label={appointment.status || "Unknown"}
+              variant="outlined"
+            />
+          </ListItem>
+        ))}
+      </List>
+    );
+  };
+  
 
-  const handleHospitalSubmit = () => {
+  const handleHospitalSubmit = async (event) => {
+    event.preventDefault();
     if (!hospitalName || !hospitalCity || !hospitalAddress) {
       toast.error("Please fill all fields");
       return;
     }
     setLoading(true);
-    axios
-      .post("http://localhost:8080/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress })
-      .then(() => {
-        toast.success("Hospital added successfully!");
-        setHospitalName("");
-        setHospitalCity("");
-        setHospitalAddress("");
-        setLoading(false);
-        axios.get("http://localhost:8080/hospitals/all").then((response) => {
-          setHospitals(response.data);
-        });
-      })
-      .catch(() => {
-        toast.error("Error adding hospital");
-        setLoading(false);
-      });
+    try {
+      const response = await axios.post("http://localhost:8080/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress });
+      toast.success("Hospital added successfully!");
+      if (response.data) {
+        setHospitals([...hospitals, response.data]);
+      }
+      setHospitalName("");
+      setHospitalCity("");
+      setHospitalAddress("");
+    } catch (error) {
+      toast.error("Error adding hospital");
+      console.error("Error adding hospital:", error.response ? error.response.data : error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSpecializationSubmit = () => {
+  const handleSpecializationSubmit = async (event) => {
+    event.preventDefault();
     if (!specializationName) {
       toast.error("Please fill all fields");
       return;
     }
     setLoading(true);
-    axios
-      .post("http://localhost:8080/specializations/add", { name: specializationName })
-      .then(() => {
-        toast.success("Specialization added successfully!");
-        setSpecializationName("");
-        setLoading(false);
-        axios.get("http://localhost:8080/specializations/all").then((response) => {
-          setSpecialization(response.data);
-        });
-      })
-      .catch(() => {
-        toast.error("Error adding specialization");
-        setLoading(false);
-      });
+    try {
+      const response = await axios.post("http://localhost:8080/specializations/add", { name: specializationName });
+      toast.success("Specialization added successfully!");
+      if (response.data) {
+        setSpecialization([...specializations, response.data]);
+      }
+      setSpecializationName("");
+    } catch (error) {
+      toast.error("Error adding specialization");
+      console.error("Error adding specialization:", error.response ? error.response.data : error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditSpecialization = (specialization) => {
@@ -278,20 +334,19 @@ export default function AdminHome() {
     setOpenSpecializationDialog(true);
   };
 
-  const handleDeleteSpecialization = (specializationId) => {
+  const handleDeleteSpecialization = async (specializationId) => {
     if (window.confirm("Are you sure you want to delete this specialization?")) {
       setLoading(true);
-      axios
-        .delete(`http://localhost:8080/specializations/delete/${specializationId}`)
-        .then(() => {
-          toast.success("Specialization deleted successfully!");
-          setSpecialization(specializations.filter((s) => s.id !== specializationId));
-          setLoading(false);
-        })
-        .catch(() => {
-          toast.error("Error deleting specialization");
-          setLoading(false);
-        });
+      try {
+        await axios.delete(`http://localhost:8080/specializations/delete/${specializationId}`);
+        toast.success("Specialization deleted successfully!");
+        setSpecialization(specializations.filter((s) => s.id !== specializationId));
+      } catch (error) {
+        toast.error("Error deleting specialization");
+        console.error("Error deleting specialization:", error.response ? error.response.data : error.message);
+      } finally {
+      setLoading(false);
+      }
     }
   };
 
@@ -303,154 +358,104 @@ export default function AdminHome() {
     setOpenHospitalDialog(true);
   };
 
-  const handleDeleteHospital = (hospitalId) => {
+  const handleDeleteHospital = async (hospitalId) => {
     if (window.confirm("Are you sure you want to delete this hospital?")) {
       setLoading(true);
-      axios
-        .delete(`http://localhost:8080/hospitals/delete/${hospitalId}`)
-        .then(() => {
-          toast.success("Hospital deleted successfully!");
-          setHospitals(hospitals.filter((hospital) => hospital.id !== hospitalId));
-          setLoading(false);
-        })
-        .catch(() => {
-          toast.error("Error deleting hospital");
-          setLoading(false);
-        });
+      try {
+        await axios.delete(`http://localhost:8080/hospitals/delete/${hospitalId}`);
+        toast.success("Hospital deleted successfully!");
+        setHospitals(hospitals.filter((hospital) => hospital.id !== hospitalId));
+      } catch (error) {
+        toast.error("Error deleting hospital");
+        console.error("Error deleting hospital:", error.response ? error.response.data : error.message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleSubmitHospital = () => {
+  const handleSubmitHospital = async () => {
     if (!hospitalName || !hospitalCity || !hospitalAddress) {
       toast.error("Please fill all fields");
       return;
     }
     setLoading(true);
-    axios
-      .put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, { name: hospitalName, city: hospitalCity, address: hospitalAddress })
-      .then(() => {
-        toast.success("Hospital updated successfully!");
-        setLoading(false);
-        axios.get("http://localhost:8080/hospitals/all").then((response) => {
-          setHospitals(response.data);
-        });
-        setOpenHospitalDialog(false);
-      })
-      .catch(() => {
-        toast.error("Error updating hospital");
-        setLoading(false);
-      });
+    try {
+      const updatedHospital = { name: hospitalName, city: hospitalCity, address: hospitalAddress };
+      await axios.put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, updatedHospital);
+      toast.success("Hospital updated successfully!");
+      setHospitals(hospitals.map((h) => (h.id === selectedHospital.id ? { ...h, ...updatedHospital } : h)));
+      setOpenHospitalDialog(false);
+    } catch (error) {
+      toast.error("Error updating hospital");
+      console.error("Error updating hospital:", error.response ? error.response.data : error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmitSpecialization = () => {
+  const handleSubmitSpecialization = async () => {
     if (!specializationName) {
       toast.error("Please fill all fields");
       return;
     }
     setLoading(true);
-    axios
-      .put(`http://localhost:8080/specializations/update/${selectedSpecialization.id}`, { name: specializationName })
-      .then(() => {
-        toast.success("Specialization updated successfully!");
-        setLoading(false);
-        axios.get("http://localhost:8080/specializations/all").then((response) => {
-          setSpecialization(response.data);
-        });
-        setOpenSpecializationDialog(false);
-      })
-      .catch(() => {
-        toast.error("Error updating specialization");
-        setLoading(false);
-      });
-  };
-
-  // Ambulance Handlers
-  const handleAddAmbulance = () => {
-    if (!ambulanceNumber || !ambulanceLocation) {
-      toast.error("Please fill all ambulance fields");
-      return;
-    }
-    setLoading(true);
-    axios
-      .post("http://localhost:8080/ambulances/add", { number: ambulanceNumber, location: ambulanceLocation })
-      .then(() => {
-        toast.success("Ambulance added successfully!");
-        setAmbulanceNumber("");
-        setAmbulanceLocation("");
-        setLoading(false);
-        axios.get("http://localhost:8080/ambulances/all").then((response) => {
-          setAmbulances(response.data);
-        });
-      })
-      .catch(() => {
-        toast.error("Error adding ambulance");
-        setLoading(false);
-      });
-  };
-
-  const handleEditAmbulance = (ambulance) => {
-    setSelectedAmbulance(ambulance);
-    setAmbulanceNumber(ambulance.number);
-    setAmbulanceLocation(ambulance.location);
-    setOpenAmbulanceDialog(true);
-  };
-
-  const handleDeleteAmbulance = (ambulanceId) => {
-    if (window.confirm("Are you sure you want to delete this ambulance?")) {
-      setLoading(true);
-      axios
-        .delete(`http://localhost:8080/ambulances/delete/${ambulanceId}`)
-        .then(() => {
-          toast.success("Ambulance deleted successfully!");
-          setAmbulances(ambulances.filter((a) => a.id !== ambulanceId));
-          setLoading(false);
-        })
-        .catch(() => {
-          toast.error("Error deleting ambulance");
-          setLoading(false);
-        });
+    try {
+      const updatedSpecialization = { name: specializationName };
+      await axios.put(`http://localhost:8080/specializations/update/${selectedSpecialization.id}`, updatedSpecialization);
+      toast.success("Specialization updated successfully!");
+      setSpecialization(specializations.map((s) => (s.id === selectedSpecialization.id ? { ...s, ...updatedSpecialization } : s)));
+      setOpenSpecializationDialog(false);
+    } catch (error) {
+      toast.error("Error updating specialization");
+      console.error("Error updating specialization:", error.response ? error.response.data : error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmitAmbulance = () => {
-    if (!ambulanceNumber || !ambulanceLocation) {
-      toast.error("Please fill all ambulance fields");
-      return;
-    }
-    setLoading(true);
-    axios
-      .put(`http://localhost:8080/ambulances/update/${selectedAmbulance.id}`, { number: ambulanceNumber, location: ambulanceLocation })
-      .then(() => {
-        toast.success("Ambulance updated successfully!");
-        setLoading(false);
-        axios.get("http://localhost:8080/ambulances/all").then((response) => {
-          setAmbulances(response.data);
-        });
-        setOpenAmbulanceDialog(false);
-      })
-      .catch(() => {
-        toast.error("Error updating ambulance");
-        setLoading(false);
-      });
+const handleAddAmbulance = async (event) => {
+  event.preventDefault();
+
+  if (
+    !ambulanceContactNumber ||
+    !ambulanceDriverName ||
+    !ambulanceRegistrationNumber ||
+    !ambulanceStatus ||
+    !ambulanceType
+  ) {
+    toast.error("Please fill all ambulance fields");
+    return;
+  }
+
+  setLoading(true);
+
+  const ambulanceData = {
+    contactNumber: ambulanceContactNumber,
+    driverName: ambulanceDriverName,
+    vehicleNumber: ambulanceRegistrationNumber, // ✅ Correct field
+    available: ambulanceStatus === "AVAILABLE", // ✅ Correct field as boolean
+    type: ambulanceType,
   };
 
-  const renderAmbulances = () => (
-    <List>
-      {ambulances.map((ambulance) => (
-        <ListItem key={ambulance.id} sx={styles.listItem}>
-          <ListItemText primary={`Number: ${ambulance.number}`} secondary={`Location: ${ambulance.location}`} />
-          <Stack direction="row" spacing={1}>
-            <Button variant="contained" color="primary" onClick={() => handleEditAmbulance(ambulance)}>
-              <Edit />
-            </Button>
-            <Button variant="contained" color="error" onClick={() => handleDeleteAmbulance(ambulance.id)}>
-              <Delete />
-            </Button>
-          </Stack>
-        </ListItem>
-      ))}
-    </List>
-  );
+  try {
+    await axios.post("http://localhost:8080/api/ambulances/add", ambulanceData);
+    toast.success("Ambulance added successfully!");
+    setAmbulanceContactNumber("");
+    setAmbulanceDriverName("");
+    setAmbulanceRegistrationNumber("");
+    setAmbulanceStatus("");
+    setAmbulanceType("");
+  } catch (error) {
+    console.error("Error adding ambulance:", error.response?.data || error.message);
+    toast.error("Error adding ambulance. Please check the server logs for details.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -475,8 +480,7 @@ export default function AdminHome() {
             <Tab label="Add Hospital" />
             <Tab label="Specializations" />
             <Tab label="Add Specialization" />
-            {/* Removed <Tab label="Ambulances" /> */}
-            <Tab label="Add Ambulance" /> {/* This tab is now at index 7 */}
+            <Tab label="Add Ambulance" />
           </Tabs>
           <Box sx={{ mt: 2 }}>
             {loading && <CircularProgress />}
@@ -484,24 +488,26 @@ export default function AdminHome() {
             {activeTab === 1 && renderUsers(patients)}
             {activeTab === 2 && renderAppointments()}
             {activeTab === 3 && (
-              <List>
-                {hospitals.map((hospital) => (
-                  <ListItem key={hospital.id} sx={styles.listItem}>
-                    <ListItemText primary={hospital.name} secondary={`${hospital.city} | ${hospital.address}`} />
-                    <Stack direction="row" spacing={1}>
-                      <Button variant="contained" color="primary" onClick={() => handleEditHospital(hospital)}>
-                        <Edit />
-                      </Button>
-                      <Button variant="contained" color="error" onClick={() => handleDeleteHospital(hospital.id)}>
-                        <Delete />
-                      </Button>
-                    </Stack>
-                  </ListItem>
-                ))}
-                {/* Display ambulances list below hospitals when on Hospitals tab */}
-                <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Ambulances</Typography>
-                {renderAmbulances()}
-              </List>
+              <Box>
+                <Typography variant="h6">Hospitals</Typography>
+                <List>
+                  {/* Debugging log for hospitals list before map */}
+                  {console.log("[Hospitals Render] hospitals:", hospitals)}
+                  {Array.isArray(hospitals) && hospitals.map((hospital) => (
+                    <ListItem key={hospital.id} sx={styles.listItem}>
+                      <ListItemText primary={hospital.name || 'N/A'} secondary={`${hospital.city || 'N/A'} | ${hospital.address || 'N/A'}`} />
+                      <Stack direction="row" spacing={1}>
+                        <Button variant="contained" color="primary" onClick={() => handleEditHospital(hospital)}>
+                          <Edit />
+                        </Button>
+                        <Button variant="contained" color="error" onClick={() => handleDeleteHospital(hospital.id)}>
+                          <Delete />
+                        </Button>
+                      </Stack>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
             )}
             {activeTab === 4 && (
               <Box component="form" onSubmit={handleHospitalSubmit}>
@@ -538,9 +544,11 @@ export default function AdminHome() {
               <Box>
                 <Typography variant="h6">Specializations</Typography>
                 <List>
-                  {specializations.map((specialization) => (
+                  {/* Debugging log for specializations list before map */}
+                  {console.log("[Specializations Render] specializations:", specializations)}
+                  {Array.isArray(specializations) && specializations.map((specialization) => (
                     <ListItem key={specialization.id} sx={styles.listItem}>
-                      <ListItemText primary={specialization.name} />
+                      <ListItemText primary={specialization.name || 'N/A'} />
                       <Stack direction="row" spacing={1}>
                         <Button variant="contained" color="primary" onClick={() => handleEditSpecialization(specialization)}>
                           <Edit />
@@ -569,30 +577,72 @@ export default function AdminHome() {
                 </Button>
               </Box>
             )}
-            {/* activeTab === 7 now corresponds to "Add Ambulance" */}
-            {activeTab === 7 && (
-              <Box component="form" onSubmit={handleAddAmbulance}>
-                <TextField
-                  label="Ambulance Number"
-                  value={ambulanceNumber}
-                  onChange={(e) => setAmbulanceNumber(e.target.value)}
-                  fullWidth
-                  margin="normal"
-                  required
-                />
-                <TextField
-                  label="Ambulance Location"
-                  value={ambulanceLocation}
-                  onChange={(e) => setAmbulanceLocation(e.target.value)}
-                  fullWidth
-                  margin="normal"
-                  required
-                />
-                <Button type="submit" variant="contained" color="primary">
-                  Add Ambulance
-                </Button>
-              </Box>
-            )}
+            
+            
+{activeTab === 7 && (
+  <Box component="form" onSubmit={handleAddAmbulance}>
+    <TextField
+      label="Contact Number"
+      value={ambulanceContactNumber}
+      onChange={(e) => setAmbulanceContactNumber(e.target.value)}
+      fullWidth
+      margin="normal"
+      required
+    />
+
+    <TextField
+      label="Driver Name"
+      value={ambulanceDriverName}
+      onChange={(e) => setAmbulanceDriverName(e.target.value)}
+      fullWidth
+      margin="normal"
+      required
+    />
+
+    <TextField
+      label="Vehicle Number" // ✅ Match backend field
+      value={ambulanceRegistrationNumber}
+      onChange={(e) => setAmbulanceRegistrationNumber(e.target.value)}
+      fullWidth
+      margin="normal"
+      required
+    />
+
+    <TextField
+      select
+      label="Ambulance Type"
+      value={ambulanceType}
+      onChange={(e) => setAmbulanceType(e.target.value)}
+      fullWidth
+      margin="normal"
+      required
+    >
+      <MenuItem value="BASIC">Basic</MenuItem>
+      <MenuItem value="ADVANCED">Advanced</MenuItem>
+      <MenuItem value="ICU">ICU</MenuItem>
+      <MenuItem value="NEONATAL">Neonatal</MenuItem>
+    </TextField>
+
+    <TextField
+      select
+      label="Status"
+      value={ambulanceStatus}
+      onChange={(e) => setAmbulanceStatus(e.target.value)}
+      fullWidth
+      margin="normal"
+      required
+    >
+      <MenuItem value="AVAILABLE">Available</MenuItem>
+      <MenuItem value="BOOKED">Booked</MenuItem>
+    </TextField>
+
+    <Button type="submit" variant="contained" color="primary">
+      Add Ambulance
+    </Button>
+  </Box>
+)}
+
+
           </Box>
         </Box>
       </Paper>
@@ -655,36 +705,7 @@ export default function AdminHome() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for editing ambulances */}
-      <Dialog open={openAmbulanceDialog} onClose={() => setOpenAmbulanceDialog(false)}>
-        <DialogTitle>Edit Ambulance</DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="dense"
-            label="Ambulance Number"
-            value={ambulanceNumber}
-            onChange={(e) => setAmbulanceNumber(e.target.value)}
-            fullWidth
-          />
-          <TextField
-            margin="dense"
-            label="Ambulance Location"
-            value={ambulanceLocation}
-            onChange={(e) => setAmbulanceLocation(e.target.value)}
-            fullWidth
-          />
-          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-            <Button variant="contained" color="primary" onClick={handleSubmitAmbulance}>
-              Save
-            </Button>
-            <Button variant="outlined" onClick={() => setOpenAmbulanceDialog(false)}>
-              Cancel
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-     <Dialog open={open} onClose={handleClose}>
+      <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
           <TextField
@@ -692,7 +713,7 @@ export default function AdminHome() {
             label="First Name"
             name="firstName"
             fullWidth
-            value={selectedUser ?.firstName || ""}
+            value={selectedUser?.firstName || ""}
             onChange={handleChange}
           />
           <TextField
@@ -700,7 +721,7 @@ export default function AdminHome() {
             label="Last Name"
             name="lastName"
             fullWidth
-            value={selectedUser ?.lastName || ""}
+            value={selectedUser?.lastName || ""}
             onChange={handleChange}
           />
           <TextField
@@ -709,7 +730,7 @@ export default function AdminHome() {
             name="email"
             type="email"
             fullWidth
-            value={selectedUser ?.email || ""}
+            value={selectedUser?.email || ""}
             onChange={handleChange}
           />
           <TextField
@@ -717,7 +738,7 @@ export default function AdminHome() {
             label="Role"
             name="role"
             fullWidth
-            value={selectedUser ?.role || ""}
+            value={selectedUser?.role || ""}
             onChange={handleChange}
           />
 
