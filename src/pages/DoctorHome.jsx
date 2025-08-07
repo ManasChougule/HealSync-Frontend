@@ -326,8 +326,8 @@ export default function DoctorHome() {
                         <Card className="h-100 shadow-sm appointment-card">
                           <Card.Body>
                             <Card.Title className="fs-5">
-                              {appointment.patient.user.firstName}{" "}
-                              {appointment.patient.user.lastName}
+                              {appointment.doctor.user.firstName}{" "}
+                              {appointment.doctor.user.lastName}
                             </Card.Title>
                             <Card.Text>
                               Day: {appointment.day} | Time: {appointment.time}
