@@ -602,11 +602,11 @@ const PatientHome = () => {
                   Your Appointments <img src={timetable} alt="timetable logo" style={{ width: "40px", height: "35px", marginLeft: "10px" }} />
                 </Typography>
 
-                {appointments.length === 0 ? (
+                {!appointments || appointments.length === 0 ? (
                   <Alert variant="info">No appointments found</Alert>
                 ) : (
                   <Row xs={1} md={2} lg={3} className="g-4">
-                    {appointments.map((appointment) => (
+                    {Array.isArray(appointments) && appointments.map((appointment) => (
                       <Col key={appointment.id}>
                         <Card className="h-100 shadow-sm appointment-card">
                           <Card.Body>
