@@ -22,14 +22,19 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
+// Removed TextField import as it's no longer needed for doctorLoadIdInput
+// import TextField from '@mui/material/TextField';
 
 // Icons from react-icons
-import { FaStethoscope, FaEdit, FaCalendarAlt, FaArrowLeft, FaSignOutAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaStethoscope, FaEdit, FaCalendarAlt, FaArrowLeft, FaSignOutAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaChartBar } from 'react-icons/fa'; // Added FaChartBar
 
 // Local Assets (assuming these are still used for images)
 import stethoscope from "../assets/stethoscope.png";
 import edit from "../assets/edit.png";
 import timetable from "../assets/timetable.png";
+
+// Recharts Imports for Bar Chart
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function DoctorHome() {
   const [doctorName, setDoctorName] = useState("");
@@ -45,6 +50,11 @@ export default function DoctorHome() {
 
   const [hospitalOptions, setHospitalOptions] = useState([]);
   const [specializationOptions, setSpecializationOptions] = useState([]);
+
+  // NEW STATES FOR DOCTOR LOAD TAB - doctorLoadIdInput and doctorLoadError removed
+  const [doctorLoadData, setDoctorLoadData] = useState(null); // Stores the fetched doctor load data
+  const [loadingDoctorLoad, setLoadingDoctorLoad] = useState(false); // Loading state for doctor load data
+  // const [doctorLoadError, setDoctorLoadError] = useState(""); // Removed as input field is gone
 
   const navigate = useNavigate();
 
@@ -80,6 +90,7 @@ export default function DoctorHome() {
     if (user) {
       setDoctorName(`${user.firstName} ${user.lastName}`);
       setDoctorId(user.doctorId);
+      // doctorLoadIdInput is no longer needed, so no pre-fill here
     }
   }, []);
 
@@ -167,6 +178,33 @@ export default function DoctorHome() {
         });
     }
   }, [doctorId, hospitalOptions, specializationOptions]);
+
+  // MODIFIED useEffect to fetch doctor load data - now uses doctorId directly
+  useEffect(() => {
+    const fetchDoctorLoadData = async () => {
+      if (!doctorId) { // Only proceed if doctorId is available
+        setDoctorLoadData(null);
+        // doctorLoadError is removed
+        return;
+      }
+
+      setLoadingDoctorLoad(true);
+      // doctorLoadError is removed
+      try {
+        const response = await axios.get(`http://localhost:8080/appointments/doctor-load/${doctorId}`); // Use doctorId directly
+        setDoctorLoadData(response.data);
+      } catch (error) {
+        console.error("Error fetching doctor load data:", error);
+        setDoctorLoadData(null);
+        // Set a generic error message if needed, but no specific input error
+        // setDoctorLoadError("Failed to fetch your load data.");
+      } finally {
+        setLoadingDoctorLoad(false);
+      }
+    };
+
+    fetchDoctorLoadData(); // Call the function
+  }, [doctorId]); // Dependency on doctorId only
 
   // Appointment statuses with react-icons
   const statusOptions = [
@@ -271,6 +309,20 @@ export default function DoctorHome() {
     }
   }
 
+  // Function to prepare data for the Bar Chart (for stacked bars)
+  const prepareChartData = (loadData) => {
+    if (!loadData || !loadData.load) {
+      return [];
+    }
+    // Map the load object into an array suitable for Recharts
+    return Object.keys(loadData.load).map(day => ({
+      day: day,
+      Confirmed: loadData.load[day].confirmed,
+      Pending: loadData.load[day].pending,
+      Cancelled: loadData.load[day].cancelled,
+    }));
+  };
+
   return (
     <Container className="my-4">
       {/* Header Row */}
@@ -301,6 +353,10 @@ export default function DoctorHome() {
           </Nav.Item>
           <Nav.Item>
             <Nav.Link eventKey="editProfile">Edit Profile</Nav.Link>
+          </Nav.Item>
+          {/* NEW TAB */}
+          <Nav.Item>
+            <Nav.Link eventKey="doctorLoad">My Schedule Load</Nav.Link> {/* Changed tab name */}
           </Nav.Item>
         </Nav>
 
@@ -494,6 +550,54 @@ export default function DoctorHome() {
                     Save Changes
                   </Button>
                 </Form>
+              </Card.Body>
+            </Card>
+          </Tab.Pane>
+
+          {/* NEW Doctor Load Tab - Modified to show only logged-in doctor's load */}
+          <Tab.Pane eventKey="doctorLoad">
+            <Card className="shadow-sm p-4 mb-4">
+              <Card.Body>
+                <Typography variant="h5" component="h2" className="text-center mb-4">
+                  <FaChartBar style={{ width: "40px", height: "35px", marginRight: "10px", color: '#007bff' }} />
+                  My Schedule Load - Day Wise
+                </Typography>
+
+                {/* Removed the TextField for Doctor ID input */}
+                {/* Removed doctorLoadError display as input is gone */}
+
+                {loadingDoctorLoad ? (
+                  <Box className="d-flex justify-content-center align-items-center my-5" sx={{ minHeight: 200 }}>
+                    <CircularProgress size={50} />
+                    <Typography variant="h6" className="ms-3 text-muted">Loading your schedule data...</Typography>
+                  </Box>
+                ) : doctorLoadData ? (
+                  <Box sx={{ p: 3, borderRadius: '12px', mt: 4 }}> {/* Using Box instead of Paper for consistency with previous code */}
+                    <Typography variant="h6" component="h3" className="mb-3 text-center" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+                      Your Load Breakdown
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <BarChart
+                        data={prepareChartData(doctorLoadData)}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="day" tickLine={false} axisLine={false} />
+                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                        <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
+                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                        {/* Stacked Bars */}
+                        <Bar dataKey="Confirmed" stackId="a" fill="#4CAF50" name="Confirmed" />
+                        <Bar dataKey="Pending" stackId="a" fill="#FFC107" name="Pending" />
+                        <Bar dataKey="Cancelled" stackId="a" fill="#F44336" name="Cancelled" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                ) : (
+                  <Alert variant="info" className="mt-4 text-center">
+                    <FaChartBar className="me-2" /> No schedule load data available for your account.
+                  </Alert>
+                )}
               </Card.Body>
             </Card>
           </Tab.Pane>
