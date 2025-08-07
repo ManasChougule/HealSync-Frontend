@@ -238,7 +238,7 @@ const PatientHome = () => {
 
   const handleAppointmentRequest = async () => {
     setAppointmentSuccess(false);
-    setAppointmentMessage(""); // Clear previous messages immediately
+    setAppointmentMessage("");
 
     if (!userData || !userData.patientId) {
       setAppointmentMessage("User information (Patient ID) could not be loaded. Please log in again.");
@@ -246,35 +246,45 @@ const PatientHome = () => {
     }
 
     const patientId = userData.patientId;
-    if (selectedDay && selectedTime && patientId && selectedDoctor) {
-        try{
-            const appointmentData = {
-                doctorId: selectedDoctor.id,
-                patientId: patientId,
-                day: selectedDay,
-                time: selectedTime,
-            };
+    if (!selectedDay || !selectedTime || !selectedDoctor) {
+      setAppointmentMessage("Please select a doctor, day, and time for your appointment.");
+      return;
+    }
 
-            const appointmentResponse = await axios.post(
-                "http://localhost:8080/appointments/create",
-                appointmentData
-            );
+    try {
+      const availabilityCheckData = {
+        doctorId: selectedDoctor.id,
+        day: selectedDay,
+        time: selectedTime,
+      };
+      const availabilityResponse = await axios.post(
+        "http://localhost:8080/appointments/check-availability",
+        availabilityCheckData
+      );
+
+      if (availabilityResponse.data && availabilityResponse.data.includes("Doctor is available")) {
+        const appointmentData = {
+          doctorId: selectedDoctor.id,
+          patientId: patientId,
+          day: selectedDay,
+          time: selectedTime,
+        };
+
+        const appointmentResponse = await axios.post(
+          "http://localhost:8080/appointments/create",
+          appointmentData
+        );
 
         if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
           setAppointmentSuccess(true);
           setAppointmentMessage("Your appointment has been saved successfully!");
-          fetchAppointments(userData.patientId); // Refresh appointments list
-
-          // Introduce a delay before clearing the form fields
-          setTimeout(() => {
-            setSelectedDoctor(null);
-            setSpecialization("");
-            setSelectedDay("");
-            setSelectedTime("");
-            setAppointmentMessage(""); // Clear the success message after it's been seen
-          }, 3000); // 3-second delay
+          fetchAppointments(userData.patientId);
+          setSelectedDoctor(null);
+          setSpecialization("");
+          setSelectedDay("");
+          setSelectedTime("");
         }
-       else {
+      } else {
           setAppointmentSuccess(false);
           setAppointmentMessage(availabilityResponse.data || "Doctor is not available at this time.");
       }
@@ -797,5 +807,5 @@ const PatientHome = () => {
     </Container>
   );
 };
-}
+
 export default PatientHome;
