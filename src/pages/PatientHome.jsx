@@ -193,12 +193,14 @@ const PatientHome = () => {
     setSelectedTime("");
     setAppointmentSuccess(false);
     setAppointmentMessage("");
+    // Clear message when day changes
   };
 
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
     setAppointmentSuccess(false);
     setAppointmentMessage("");
+    // Clear message when time changes
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
@@ -236,7 +238,7 @@ const PatientHome = () => {
 
   const handleAppointmentRequest = async () => {
     setAppointmentSuccess(false);
-    setAppointmentMessage("");
+    setAppointmentMessage(""); // Clear previous messages immediately
 
     if (!userData || !userData.patientId) {
       setAppointmentMessage("User information (Patient ID) could not be loaded. Please log in again.");
@@ -258,19 +260,42 @@ const PatientHome = () => {
                 appointmentData
             );
 
-            if (appointmentResponse.status === 200) {
-                setAppointmentSuccess(true);
-                fetchAppointments(userData.patientId);
-            }
-        }catch(error){
-            if (error.response && error.response.status === 400) {
-            alert("The doctor is not available at this time.");
-            } else {
-            alert("The appointment could not be saved. Please try again.");
-            }
+        if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
+          setAppointmentSuccess(true);
+          setAppointmentMessage("Your appointment has been saved successfully!");
+          fetchAppointments(userData.patientId); // Refresh appointments list
+
+          // Introduce a delay before clearing the form fields
+          setTimeout(() => {
+            setSelectedDoctor(null);
+            setSpecialization("");
+            setSelectedDay("");
+            setSelectedTime("");
+            setAppointmentMessage(""); // Clear the success message after it's been seen
+          }, 3000); // 3-second delay
         }
-    } else {
-      alert("Please select a day and time or the patient ID is incorrect.");
+      } else {
+          setAppointmentSuccess(false);
+          setAppointmentMessage(availabilityResponse.data || "Doctor is not available at this time.");
+      }
+    } catch (error) {
+      console.error("Error during appointment request:", error);
+      setAppointmentSuccess(false);
+      let msg = "An unknown error occurred. Please try again.";
+      if (error.response) {
+        if (typeof error.response.data === 'string') {
+            msg = error.response.data;
+        } else if (error.response.data && error.response.data.message) {
+            msg = error.response.data.message;
+        } else if (error.response.data) {
+            msg = JSON.stringify(error.response.data);
+        }
+        setAppointmentMessage(`Booking failed: ${msg}`);
+      } else if (error.request) {
+        setAppointmentMessage("No response from server. Please check your network connection or try again later.");
+      } else {
+        setAppointmentMessage(`An error occurred: ${error.message}. Please try again.`);
+      }
     }
   };
 
@@ -579,6 +604,7 @@ const PatientHome = () => {
                         </Form.Group>
 
                         <Button
+                          type="button"
                           variant="primary"
                           className="w-100 mt-3"
                           onClick={handleAppointmentRequest}
