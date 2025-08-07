@@ -20,19 +20,20 @@ import {
   CircularProgress,
   Chip,
   Stack,
+  MenuItem,
 } from "@mui/material";
 import { Delete, Edit, CheckCircle, Cancel, AccessTime, Help, Logout, ArrowBack } from "@mui/icons-material";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Import Recharts components
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function AdminHome() {
   const navigate = useNavigate();
-  // Ensure all list states are initialized to empty arrays
+
+  // State variables
   const [users, setUsers] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -47,60 +48,66 @@ export default function AdminHome() {
   const [hospitalCity, setHospitalCity] = useState("");
   const [hospitalAddress, setHospitalAddress] = useState("");
   const [specializationName, setSpecializationName] = useState("");
-  const [selectedHospital, setSelectedHospital] = useState(null); // Initialize to null, but handle carefully
-  const [selectedSpecialization, setSelectedSpecialization] = useState(null); // Initialize to null, but handle carefully
+  const [selectedHospital, setSelectedHospital] = useState(null);
+  const [selectedSpecialization, setSelectedSpecialization] = useState(null);
   const [openHospitalDialog, setOpenHospitalDialog] = useState(false);
   const [openSpecializationDialog, setOpenSpecializationDialog] = useState(false);
 
-  // States for Ambulance management (ONLY for adding)
+  // States for Ambulance management
+  const [ambulances, setAmbulances] = useState([]); // New state to store ambulances
   const [ambulanceContactNumber, setAmbulanceContactNumber] = useState("");
   const [ambulanceDriverName, setAmbulanceDriverName] = useState("");
   const [ambulanceRegistrationNumber, setAmbulanceRegistrationNumber] = useState("");
   const [ambulanceStatus, setAmbulanceStatus] = useState("");
+  const [ambulanceType, setAmbulanceType] = useState("");
 
-  // NEW STATE FOR DOCTOR APPOINTMENT STATS
+  // State for Doctor Appointment Stats
   const [doctorStats, setDoctorStats] = useState([]);
 
+  // Validation states for forms
+  const [hospitalNameError, setHospitalNameError] = useState("");
+  const [hospitalCityError, setHospitalCityError] = useState("");
+  const [hospitalAddressError, setHospitalAddressError] = useState("");
+  const [specializationNameError, setSpecializationNameError] = useState("");
+  const [ambulanceContactNumberError, setAmbulanceContactNumberError] = useState("");
+  const [ambulanceDriverNameError, setAmbulanceDriverNameError] = useState("");
+  const [ambulanceRegistrationNumberError, setAmbulanceRegistrationNumberError] = useState("");
+  const [ambulanceStatusError, setAmbulanceStatusError] = useState("");
+  const [ambulanceTypeError, setAmbulanceTypeError] = useState("");
+  const [userFirstNameError, setUserFirstNameError] = useState("");
+  const [userLastNameError, setUserLastNameError] = useState("");
+  const [userEmailError, setUserEmailError] = useState("");
+  const [userRoleError, setUserRoleError] = useState("");
+
+
+  // Regex for validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneNumberRegex = /^[6-9]\d{9}$/;
+  const nameRegex = /^[A-Za-z\s]+$/;
+  const vehicleNumberRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/;
+
   // Helper function to safely get array data from API response
-  // Added more robust checks and logging
-  const getArrayFromResponse = (data, endpointName = "unknown") => {
-    if (data === null || data === undefined) {
-      console.warn(`[${endpointName}] API response data was NULL or UNDEFINED. Returning empty array.`);
-      return [];
-    }
-    if (!Array.isArray(data)) {
-      console.warn(`[${endpointName}] API response data was NOT an array. Type: ${typeof data}. Value:`, data, `. Returning empty array.`);
+  const getArrayFromResponse = (data) => {
+    if (data === null || data === undefined || !Array.isArray(data)) {
       return [];
     }
     return data;
   };
 
-  // Load users (doctors and patients)
+  // Fetch Users (Doctors and Patients)
   useEffect(() => {
+    // TODO: Add JWT authentication check here
     const fetchUsers = async () => {
       setLoading(true);
       try {
         const response = await axios.get("http://localhost:8080/registration/all?role=ADMIN");
-        console.log("[Users Fetch] Raw API response data:", response.data); // Debugging log
-        const allUsers = getArrayFromResponse(response.data, "users");
+        const allUsers = getArrayFromResponse(response.data);
 
-        // Ensure allUsers is an array before filtering
-        if (Array.isArray(allUsers)) {
-          setDoctors(allUsers.filter((user) => user.role === "DOCTOR"));
-          setPatients(allUsers.filter((user) => user.role === "PATIENT"));
-          setUsers(allUsers); // Update the general users state too if needed elsewhere
-        } else {
-          console.error("[Users Fetch] getArrayFromResponse returned non-array for users.");
-          setDoctors([]);
-          setPatients([]);
-          setUsers([]);
-        }
+        setDoctors(allUsers.filter((user) => user.role === "DOCTOR"));
+        setPatients(allUsers.filter((user) => user.role === "PATIENT"));
+        setUsers(allUsers);
       } catch (error) {
         toast.error("Error fetching users");
-        console.error("Error fetching users:", error.response ? error.response.data : error.message);
-        setDoctors([]);
-        setPatients([]);
-        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -108,18 +115,16 @@ export default function AdminHome() {
     fetchUsers();
   }, []);
 
-  // Load appointments
+  // Fetch Appointments
   useEffect(() => {
+    // TODO: Add JWT authentication check here
     const fetchAppointments = async () => {
       setLoading(true);
       try {
         const response = await axios.get("http://localhost:8080/registration/appointments?role=ADMIN");
-        console.log("[Appointments Fetch] Raw API response data:", response.data); // Debugging log
-        setAppointments(getArrayFromResponse(response.data, "appointments"));
+        setAppointments(getArrayFromResponse(response.data));
       } catch (error) {
         toast.error("Error fetching appointments");
-        console.error("Error fetching appointments:", error.response ? error.response.data : error.message);
-        setAppointments([]);
       } finally {
         setLoading(false);
       }
@@ -127,74 +132,125 @@ export default function AdminHome() {
     fetchAppointments();
   }, []);
 
-  // Load hospitals
+  // Fetch Hospitals
   useEffect(() => {
+    // TODO: Add JWT authentication check here
     const fetchHospitals = async () => {
       try {
         const response = await axios.get("http://localhost:8080/hospitals/all");
-        console.log("[Hospitals Fetch] Raw API response data:", response.data); // Debugging log
-        setHospitals(getArrayFromResponse(response.data, "hospitals"));
+        setHospitals(getArrayFromResponse(response.data));
       } catch (error) {
         toast.error("Error fetching hospitals");
-        console.error("Error fetching hospitals:", error.response ? error.response.data : error.message);
-        setHospitals([]);
       }
     };
     fetchHospitals();
   }, []);
 
-  // Load specializations
+  // Fetch Specializations
   useEffect(() => {
+    // TODO: Add JWT authentication check here
     const fetchSpecializations = async () => {
       try {
         const response = await axios.get("http://localhost:8080/specializations/all");
-        console.log("[Specializations Fetch] Raw API response data:", response.data); // Debugging log
-        setSpecialization(getArrayFromResponse(response.data, "specializations"));
+        setSpecialization(getArrayFromResponse(response.data));
       } catch (error) {
         toast.error("Error fetching specializations");
-        console.error("Error fetching specializations:", error.response ? error.response.data : error.message);
-        setSpecialization([]);
       }
     };
     fetchSpecializations();
   }, []);
 
-  // NEW useEffect to fetch doctor appointment statistics
+  // Fetch Doctor Appointment Statistics
   useEffect(() => {
+    // TODO: Add JWT authentication check here
     const fetchDoctorStats = async () => {
       try {
-        // Using your provided backend endpoint
         const response = await axios.get("http://localhost:8080/appointments/doctors-availability-summary");
-        console.log("[Doctor Stats Fetch] Raw API response data:", response.data);
-        setDoctorStats(getArrayFromResponse(response.data, "doctorStats"));
+        setDoctorStats(getArrayFromResponse(response.data));
       } catch (error) {
         toast.error("Error fetching doctor statistics");
-        console.error("Error fetching doctor statistics:", error.response ? error.response.data : error.message);
-        setDoctorStats([]);
       }
     };
     fetchDoctorStats();
-  }, []); // Empty dependency array to fetch once on component mount
+  }, []);
 
-  // Removed: useEffect for fetching ambulances, as per "not fetching data of ambulances"
+  // Fetch Ambulances
+  useEffect(() => {
+    // TODO: Add JWT authentication check here
+    const fetchAmbulances = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get("http://localhost:8080/api/ambulances/all");
+        setAmbulances(getArrayFromResponse(response.data));
+      } catch (error) {
+        toast.error("Error fetching ambulances");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAmbulances();
+  }, []);
 
+  // User Management Handlers
   const handleEdit = (user) => {
     setSelectedUser(user);
     setOpen(true);
+    // Clear previous errors when opening dialog
+    setUserFirstNameError("");
+    setUserLastNameError("");
+    setUserEmailError("");
+    setUserRoleError("");
   };
 
   const handleClose = () => {
     setOpen(false);
     setSelectedUser(null);
+    // Clear errors on close
+    setUserFirstNameError("");
+    setUserLastNameError("");
+    setUserEmailError("");
+    setUserRoleError("");
+  };
+
+  const validateUserFields = () => {
+    let isValid = true;
+    if (!selectedUser?.firstName || !nameRegex.test(selectedUser.firstName)) {
+      setUserFirstNameError("First name should contain only letters.");
+      isValid = false;
+    } else {
+      setUserFirstNameError("");
+    }
+    if (!selectedUser?.lastName || !nameRegex.test(selectedUser.lastName)) {
+      setUserLastNameError("Last name should contain only letters.");
+      isValid = false;
+    } else {
+      setUserLastNameError("");
+    }
+    if (!selectedUser?.email || !emailRegex.test(selectedUser.email)) {
+      setUserEmailError("Enter a valid email address.");
+      isValid = false;
+    } else {
+      setUserEmailError("");
+    }
+    if (!selectedUser?.role) {
+      setUserRoleError("Role cannot be empty.");
+      isValid = false;
+    } else {
+      setUserRoleError("");
+    }
+    return isValid;
   };
 
   const handleSubmit = async () => {
+    if (!validateUserFields()) {
+      return;
+    }
+
     setLoading(true);
     try {
+      // TODO: Add JWT token to headers
       await axios.put(`http://localhost:8080/registration/update/${selectedUser.id}`, selectedUser);
       toast.success("User updated successfully!");
-      // Re-fetch users to ensure lists are fully updated after an edit
-      // Or, more efficiently, update the specific user in the state
       if (selectedUser.role === "DOCTOR") {
         setDoctors(doctors.map((user) => (user.id === selectedUser.id ? selectedUser : user)));
       } else if (selectedUser.role === "PATIENT") {
@@ -203,7 +259,6 @@ export default function AdminHome() {
       handleClose();
     } catch (error) {
       toast.error("Error updating user");
-      console.error("Error updating user:", error.response ? error.response.data : error.message);
     } finally {
       setLoading(false);
     }
@@ -212,19 +267,24 @@ export default function AdminHome() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setSelectedUser({ ...selectedUser, [name]: value });
+    // Clear error for the specific field on change
+    if (name === "firstName") setUserFirstNameError("");
+    if (name === "lastName") setUserLastNameError("");
+    if (name === "email") setUserEmailError("");
+    if (name === "role") setUserRoleError("");
   };
 
   const handleDelete = async (userId) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       setLoading(true);
       try {
+        // TODO: Add JWT token to headers
         await axios.delete(`http://localhost:8080/registration/delete/${userId}`);
         toast.success("User deleted successfully!");
         setDoctors(doctors.filter((user) => user.id !== userId));
         setPatients(patients.filter((user) => user.id !== userId));
       } catch (error) {
         toast.error("Error deleting user");
-        console.error("Error deleting user:", error.response ? error.response.data : error.message);
       } finally {
         setLoading(false);
       }
@@ -255,7 +315,6 @@ export default function AdminHome() {
   };
 
   const renderUsers = (userList) => {
-    console.log("[renderUsers] userList:", userList); // Debugging log
     return (
       <List>
         {Array.isArray(userList) && userList.map((user) => (
@@ -264,8 +323,8 @@ export default function AdminHome() {
               <Avatar src={user.gender === "MALE" ? "/male.png" : "/female.png"} />
             </ListItemAvatar>
             <ListItemText
-              primary={`${user.firstName || ''} ${user.lastName || ''}`} // Defensive access
-              secondary={`${user.role || ''} | ${user.email || ''}`} // Defensive access
+              primary={`${user.firstName || ''} ${user.lastName || ''}`}
+              secondary={`${user.role || ''} | ${user.email || ''}`}
             />
             <Stack direction="row" spacing={1}>
               <Button variant="contained" color="primary" onClick={() => handleEdit(user)}>
@@ -282,7 +341,6 @@ export default function AdminHome() {
   };
 
   const renderAppointments = () => {
-    console.log("[renderAppointments] appointments:", appointments); // Debugging log
     return (
       <List>
         {Array.isArray(appointments) && appointments.map((appointment) => (
@@ -302,14 +360,38 @@ export default function AdminHome() {
     );
   };
 
+  // Hospital Management Handlers
+  const validateHospitalFields = () => {
+    let isValid = true;
+    if (!hospitalName || !nameRegex.test(hospitalName)) {
+      setHospitalNameError("Hospital name should contain only letters.");
+      isValid = false;
+    } else {
+      setHospitalNameError("");
+    }
+    if (!hospitalCity || !nameRegex.test(hospitalCity)) {
+      setHospitalCityError("City should contain only letters.");
+      isValid = false;
+    } else {
+      setHospitalCityError("");
+    }
+    if (!hospitalAddress) {
+      setHospitalAddressError("Address cannot be empty.");
+      isValid = false;
+    } else {
+      setHospitalAddressError("");
+    }
+    return isValid;
+  };
+
   const handleHospitalSubmit = async (event) => {
     event.preventDefault();
-    if (!hospitalName || !hospitalCity || !hospitalAddress) {
-      toast.error("Please fill all fields");
+    if (!validateHospitalFields()) {
       return;
     }
     setLoading(true);
     try {
+      // TODO: Add JWT token to headers
       const response = await axios.post("http://localhost:8080/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress });
       toast.success("Hospital added successfully!");
       if (response.data) {
@@ -318,55 +400,13 @@ export default function AdminHome() {
       setHospitalName("");
       setHospitalCity("");
       setHospitalAddress("");
+      setHospitalNameError("");
+      setHospitalCityError("");
+      setHospitalAddressError("");
     } catch (error) {
       toast.error("Error adding hospital");
-      console.error("Error adding hospital:", error.response ? error.response.data : error.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSpecializationSubmit = async (event) => {
-    event.preventDefault();
-    if (!specializationName) {
-      toast.error("Please fill all fields");
-      return;
-    }
-    setLoading(true);
-    try {
-      const response = await axios.post("http://localhost:8080/specializations/add", { name: specializationName });
-      toast.success("Specialization added successfully!");
-      if (response.data) {
-        setSpecialization([...specializations, response.data]);
-      }
-      setSpecializationName("");
-    } catch (error) {
-      toast.error("Error adding specialization");
-      console.error("Error adding specialization:", error.response ? error.response.data : error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEditSpecialization = (specialization) => {
-    setSelectedSpecialization(specialization);
-    setSpecializationName(specialization.name);
-    setOpenSpecializationDialog(true);
-  };
-
-  const handleDeleteSpecialization = async (specializationId) => {
-    if (window.confirm("Are you sure you want to delete this specialization?")) {
-      setLoading(true);
-      try {
-        await axios.delete(`http://localhost:8080/specializations/delete/${specializationId}`);
-        toast.success("Specialization deleted successfully!");
-        setSpecialization(specializations.filter((s) => s.id !== specializationId));
-      } catch (error) {
-        toast.error("Error deleting specialization");
-        console.error("Error deleting specialization:", error.response ? error.response.data : error.message);
-      } finally {
-      setLoading(false);
-      }
     }
   };
 
@@ -376,18 +416,22 @@ export default function AdminHome() {
     setHospitalCity(hospital.city);
     setHospitalAddress(hospital.address);
     setOpenHospitalDialog(true);
+    // Clear previous errors when opening dialog
+    setHospitalNameError("");
+    setHospitalCityError("");
+    setHospitalAddressError("");
   };
 
   const handleDeleteHospital = async (hospitalId) => {
     if (window.confirm("Are you sure you want to delete this hospital?")) {
       setLoading(true);
       try {
+        // TODO: Add JWT token to headers
         await axios.delete(`http://localhost:8080/hospitals/delete/${hospitalId}`);
         toast.success("Hospital deleted successfully!");
         setHospitals(hospitals.filter((hospital) => hospital.id !== hospitalId));
       } catch (error) {
         toast.error("Error deleting hospital");
-        console.error("Error deleting hospital:", error.response ? error.response.data : error.message);
       } finally {
         setLoading(false);
       }
@@ -395,80 +439,220 @@ export default function AdminHome() {
   };
 
   const handleSubmitHospital = async () => {
-    if (!hospitalName || !hospitalCity || !hospitalAddress) {
-      toast.error("Please fill all fields");
+    if (!validateHospitalFields()) {
       return;
     }
     setLoading(true);
     try {
       const updatedHospital = { name: hospitalName, city: hospitalCity, address: hospitalAddress };
+      // TODO: Add JWT token to headers
       await axios.put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, updatedHospital);
       toast.success("Hospital updated successfully!");
       setHospitals(hospitals.map((h) => (h.id === selectedHospital.id ? { ...h, ...updatedHospital } : h)));
       setOpenHospitalDialog(false);
+      setHospitalNameError("");
+      setHospitalCityError("");
+      setHospitalAddressError("");
     } catch (error) {
       toast.error("Error updating hospital");
-      console.error("Error updating hospital:", error.response ? error.response.data : error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // Specialization Management Handlers
+  const validateSpecializationFields = () => {
+    let isValid = true;
+    if (!specializationName || !nameRegex.test(specializationName)) {
+      setSpecializationNameError("Specialization name should contain only letters.");
+      isValid = false;
+    } else {
+      setSpecializationNameError("");
+    }
+    return isValid;
+  };
+
+  const handleSpecializationSubmit = async (event) => {
+    event.preventDefault();
+    if (!validateSpecializationFields()) {
+      return;
+    }
+    setLoading(true);
+    try {
+      // TODO: Add JWT token to headers
+      const response = await axios.post("http://localhost:8080/specializations/add", { name: specializationName });
+      toast.success("Specialization added successfully!");
+      if (response.data) {
+        setSpecialization([...specializations, response.data]);
+      }
+      setSpecializationName("");
+      setSpecializationNameError("");
+    } catch (error) {
+      toast.error("Error adding specialization");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSpecialization = (specialization) => {
+    setSelectedSpecialization(specialization);
+    setSpecializationName(specialization.name);
+    setOpenSpecializationDialog(true);
+    // Clear previous errors when opening dialog
+    setSpecializationNameError("");
+  };
+
+  const handleDeleteSpecialization = async (specializationId) => {
+    if (window.confirm("Are you sure you want to delete this specialization?")) {
+      setLoading(true);
+      try {
+        // TODO: Add JWT token to headers
+        await axios.delete(`http://localhost:8080/specializations/delete/${specializationId}`);
+        toast.success("Specialization deleted successfully!");
+        setSpecialization(specializations.filter((s) => s.id !== specializationId));
+      } catch (error) {
+        toast.error("Error deleting specialization");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleSubmitSpecialization = async () => {
-    if (!specializationName) {
-      toast.error("Please fill all fields");
+    if (!validateSpecializationFields()) {
       return;
     }
     setLoading(true);
     try {
       const updatedSpecialization = { name: specializationName };
+      // TODO: Add JWT token to headers
       await axios.put(`http://localhost:8080/specializations/update/${selectedSpecialization.id}`, updatedSpecialization);
       toast.success("Specialization updated successfully!");
       setSpecialization(specializations.map((s) => (s.id === selectedSpecialization.id ? { ...s, ...updatedSpecialization } : s)));
       setOpenSpecializationDialog(false);
+      setSpecializationNameError("");
     } catch (error) {
       toast.error("Error updating specialization");
-      console.error("Error updating specialization:", error.response ? error.response.data : error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Ambulance Handlers (ONLY for adding)
+  // Ambulance Management Handlers
+  const validateAmbulanceFields = () => {
+    let isValid = true;
+    if (!ambulanceContactNumber || !phoneNumberRegex.test(ambulanceContactNumber)) {
+      setAmbulanceContactNumberError("Mobile number must start with 6-9 and be 10 digits.");
+      isValid = false;
+    } else {
+      setAmbulanceContactNumberError("");
+    }
+    if (!ambulanceDriverName || !nameRegex.test(ambulanceDriverName)) {
+      setAmbulanceDriverNameError("Driver name should contain only letters.");
+      isValid = false;
+    } else {
+      setAmbulanceDriverNameError("");
+    }
+    if (!ambulanceRegistrationNumber || !vehicleNumberRegex.test(ambulanceRegistrationNumber)) {
+      setAmbulanceRegistrationNumberError("Enter a valid vehicle number (e.g., MH12AB1234).");
+      isValid = false;
+    } else {
+      setAmbulanceRegistrationNumberError("");
+    }
+    if (!ambulanceStatus) {
+      setAmbulanceStatusError("Status cannot be empty.");
+      isValid = false;
+    } else {
+      setAmbulanceStatusError("");
+    }
+    if (!ambulanceType) {
+      setAmbulanceTypeError("Ambulance type cannot be empty.");
+      isValid = false;
+    } else {
+      setAmbulanceTypeError("");
+    }
+    return isValid;
+  };
+
   const handleAddAmbulance = async (event) => {
     event.preventDefault();
-    if (!ambulanceContactNumber || !ambulanceDriverName || !ambulanceRegistrationNumber || !ambulanceStatus) {
-      toast.error("Please fill all ambulance fields");
+
+    if (!validateAmbulanceFields()) {
       return;
     }
+
     setLoading(true);
+
     const ambulanceData = {
-      contact_number: ambulanceContactNumber,
-      driver_name: ambulanceDriverName,
-      registration_number: ambulanceRegistrationNumber,
-      status: ambulanceStatus,
+      contactNumber: ambulanceContactNumber,
+      driverName: ambulanceDriverName,
+      vehicleNumber: ambulanceRegistrationNumber,
+      available: ambulanceStatus === "AVAILABLE",
+      type: ambulanceType,
     };
-    console.log("Sending ambulance data:", ambulanceData);
+
     try {
-      await axios.post("http://localhost:8080/ambulances/add", ambulanceData);
+      // TODO: Add JWT token to headers
+      const response = await axios.post("http://localhost:8080/api/ambulances/add", ambulanceData);
       toast.success("Ambulance added successfully!");
+      if (response.data) {
+        setAmbulances([...ambulances, response.data]); // Add the new ambulance to the list
+      }
       setAmbulanceContactNumber("");
       setAmbulanceDriverName("");
       setAmbulanceRegistrationNumber("");
       setAmbulanceStatus("");
+      setAmbulanceType("");
+      // Clear all ambulance form errors on success
+      setAmbulanceContactNumberError("");
+      setAmbulanceDriverNameError("");
+      setAmbulanceRegistrationNumberError("");
+      setAmbulanceStatusError("");
+      setAmbulanceTypeError("");
     } catch (error) {
-      console.error("Error adding ambulance:", error.response ? error.response.data : error.message);
       toast.error("Error adding ambulance. Please check the server logs for details.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Removed getDoctorFullName helper as doctorName is now directly available in DTO
-  // const getDoctorFullName = (doctorId) => {
-  //   const doctor = doctors.find(doc => doc.id === doctorId);
-  //   return doctor ? `${doctor.firstName} ${doctor.lastName}` : `Doctor ID: ${doctorId}`;
-  // };
+  const handleDeleteAmbulance = async (ambulanceId) => {
+    if (window.confirm("Are you sure you want to delete this ambulance?")) {
+      setLoading(true);
+      try {
+        // TODO: Add JWT token to headers
+        await axios.delete(`http://localhost:8080/api/ambulances/delete/${ambulanceId}`);
+        toast.success("Ambulance deleted successfully!");
+        setAmbulances(ambulances.filter((ambulance) => ambulance.id !== ambulanceId));
+      } catch (error) {
+        toast.error("Error deleting ambulance");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const renderAmbulances = () => {
+    return (
+      <List>
+        {Array.isArray(ambulances) && ambulances.map((ambulance) => (
+          <ListItem key={ambulance.id} sx={styles.listItem}>
+            <ListItemText
+              primary={`Driver: ${ambulance.driverName || 'N/A'} | Vehicle: ${ambulance.vehicleNumber || 'N/A'}`}
+              secondary={`Contact: ${ambulance.contactNumber || 'N/A'} | Type: ${ambulance.type || 'N/A'} | Status: ${ambulance.available ? 'Available' : 'Booked'}`}
+            />
+            <Stack direction="row" spacing={1}>
+              {/* Add edit functionality for ambulance if needed */}
+              <Button variant="contained" color="error" onClick={() => handleDeleteAmbulance(ambulance.id)}>
+                <Delete />
+              </Button>
+            </Stack>
+          </ListItem>
+        ))}
+      </List>
+    );
+  };
+
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -493,8 +677,8 @@ export default function AdminHome() {
             <Tab label="Add Hospital" />
             <Tab label="Specializations" />
             <Tab label="Add Specialization" />
+            <Tab label="Ambulances" /> {/* New tab for viewing ambulances */}
             <Tab label="Add Ambulance" />
-            {/* NEW TAB FOR DOCTOR STATS */}
             <Tab label="Doctor Statistics" />
           </Tabs>
           <Box sx={{ mt: 2 }}>
@@ -506,8 +690,6 @@ export default function AdminHome() {
               <Box>
                 <Typography variant="h6">Hospitals</Typography>
                 <List>
-                  {/* Debugging log for hospitals list before map */}
-                  {console.log("[Hospitals Render] hospitals:", hospitals)}
                   {Array.isArray(hospitals) && hospitals.map((hospital) => (
                     <ListItem key={hospital.id} sx={styles.listItem}>
                       <ListItemText primary={hospital.name || 'N/A'} secondary={`${hospital.city || 'N/A'} | ${hospital.address || 'N/A'}`} />
@@ -529,26 +711,32 @@ export default function AdminHome() {
                 <TextField
                   label="Hospital Name"
                   value={hospitalName}
-                  onChange={(e) => setHospitalName(e.target.value)}
+                  onChange={(e) => { setHospitalName(e.target.value); setHospitalNameError(""); }}
                   fullWidth
                   margin="normal"
                   required
+                  error={!!hospitalNameError}
+                  helperText={hospitalNameError}
                 />
                 <TextField
                   label="City"
                   value={hospitalCity}
-                  onChange={(e) => setHospitalCity(e.target.value)}
+                  onChange={(e) => { setHospitalCity(e.target.value); setHospitalCityError(""); }}
                   fullWidth
                   margin="normal"
                   required
+                  error={!!hospitalCityError}
+                  helperText={hospitalCityError}
                 />
                 <TextField
                   label="Address"
                   value={hospitalAddress}
-                  onChange={(e) => setHospitalAddress(e.target.value)}
+                  onChange={(e) => { setHospitalAddress(e.target.value); setHospitalAddressError(""); }}
                   fullWidth
                   margin="normal"
                   required
+                  error={!!hospitalAddressError}
+                  helperText={hospitalAddressError}
                 />
                 <Button type="submit" variant="contained" color="primary">
                   Add Hospital
@@ -559,8 +747,6 @@ export default function AdminHome() {
               <Box>
                 <Typography variant="h6">Specializations</Typography>
                 <List>
-                  {/* Debugging log for specializations list before map */}
-                  {console.log("[Specializations Render] specializations:", specializations)}
                   {Array.isArray(specializations) && specializations.map((specialization) => (
                     <ListItem key={specialization.id} sx={styles.listItem}>
                       <ListItemText primary={specialization.name || 'N/A'} />
@@ -582,78 +768,106 @@ export default function AdminHome() {
                 <TextField
                   label="Specialization Name"
                   value={specializationName}
-                  onChange={(e) => setSpecializationName(e.target.value)}
+                  onChange={(e) => { setSpecializationName(e.target.value); setSpecializationNameError(""); }}
                   fullWidth
                   margin="normal"
                   required
+                  error={!!specializationNameError}
+                  helperText={specializationNameError}
                 />
                 <Button type="submit" variant="contained" color="primary">
                   Add Specialization
                 </Button>
               </Box>
             )}
-            {activeTab === 7 && (
+            {activeTab === 7 && renderAmbulances()} {/* Render ambulances list */}
+            {activeTab === 8 && (
               <Box component="form" onSubmit={handleAddAmbulance}>
                 <TextField
                   label="Contact Number"
                   value={ambulanceContactNumber}
-                  onChange={(e) => setAmbulanceContactNumber(e.target.value)}
+                  onChange={(e) => { setAmbulanceContactNumber(e.target.value); setAmbulanceContactNumberError(""); }}
                   fullWidth
                   margin="normal"
                   required
+                  error={!!ambulanceContactNumberError}
+                  helperText={ambulanceContactNumberError}
                 />
                 <TextField
                   label="Driver Name"
                   value={ambulanceDriverName}
-                  onChange={(e) => setAmbulanceDriverName(e.target.value)}
+                  onChange={(e) => { setAmbulanceDriverName(e.target.value); setAmbulanceDriverNameError(""); }}
                   fullWidth
                   margin="normal"
                   required
+                  error={!!ambulanceDriverNameError}
+                  helperText={ambulanceDriverNameError}
                 />
                 <TextField
-                  label="Registration Number"
+                  label="Vehicle Number"
                   value={ambulanceRegistrationNumber}
-                  onChange={(e) => setAmbulanceRegistrationNumber(e.target.value)}
+                  onChange={(e) => { setAmbulanceRegistrationNumber(e.target.value); setAmbulanceRegistrationNumberError(""); }}
                   fullWidth
                   margin="normal"
                   required
+                  error={!!ambulanceRegistrationNumberError}
+                  helperText={ambulanceRegistrationNumberError}
                 />
                 <TextField
+                  select
+                  label="Ambulance Type"
+                  value={ambulanceType}
+                  onChange={(e) => { setAmbulanceType(e.target.value); setAmbulanceTypeError(""); }}
+                  fullWidth
+                  margin="normal"
+                  required
+                  error={!!ambulanceTypeError}
+                  helperText={ambulanceTypeError}
+                >
+                  <MenuItem value="BASIC">Basic</MenuItem>
+                  <MenuItem value="ADVANCED">Advanced</MenuItem>
+                  <MenuItem value="ICU">ICU</MenuItem>
+                  <MenuItem value="NEONATAL">Neonatal</MenuItem>
+                </TextField>
+                <TextField
+                  select
                   label="Status"
                   value={ambulanceStatus}
-                  onChange={(e) => setAmbulanceStatus(e.target.value)}
+                  onChange={(e) => { setAmbulanceStatus(e.target.value); setAmbulanceStatusError(""); }}
                   fullWidth
                   margin="normal"
                   required
-                />
+                  error={!!ambulanceStatusError}
+                  helperText={ambulanceStatusError}
+                >
+                  <MenuItem value="AVAILABLE">Available</MenuItem>
+                  <MenuItem value="BOOKED">Booked</MenuItem>
+                </TextField>
                 <Button type="submit" variant="contained" color="primary">
                   Add Ambulance
                 </Button>
               </Box>
             )}
-            {/* NEW TAB CONTENT FOR DOCTOR STATS */}
-            {activeTab === 8 && ( // This will be the 9th tab (index 8)
-              <Box sx={{ p: 3 }}> {/* Added padding to the main Box for better spacing */}
+            {activeTab === 9 && (
+              <Box sx={{ p: 3 }}>
                 <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                   Doctor Appointment Statistics Overview
                 </Typography>
-
-                {loading ? ( // Use the existing loading state
+                {loading ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
                     <CircularProgress />
                     <Typography variant="subtitle1" sx={{ ml: 2 }}>Loading statistics...</Typography>
                   </Box>
                 ) : doctorStats.length > 0 ? (
                   <>
-                    {/* Stacked Bar Chart for all doctors */}
-                    <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 2 }}> {/* Added Paper with elevation */}
+                    <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
                       <Typography variant="h6" component="h3" gutterBottom sx={{ mb: 2 }}>
                         Appointments Status Across All Doctors
                       </Typography>
                       <ResponsiveContainer width="100%" height={350}>
                         <BarChart
                           data={doctorStats.map(stat => ({
-                            name: stat.doctorName, // Use doctorName directly from DTO
+                            name: stat.doctorName,
                             Confirmed: stat.confirmed,
                             Pending: stat.pending,
                             Cancelled: stat.cancelled,
@@ -661,68 +875,65 @@ export default function AdminHome() {
                           margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={60} /> {/* Adjust for long names */}
-                          <YAxis allowDecimals={false} /> {/* Ensure Y-axis shows whole numbers */}
-                          <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} /> {/* Add a subtle cursor */}
-                          <Legend wrapperStyle={{ paddingTop: '10px' }} /> {/* Add padding to legend */}
-                          <Bar dataKey="Confirmed" stackId="a" fill="#4CAF50" name="Confirmed" /> {/* Green */}
-                          <Bar dataKey="Pending" stackId="a" fill="#FFC107" name="Pending" />     {/* Amber */}
-                          <Bar dataKey="Cancelled" stackId="a" fill="#F44336" name="Cancelled" />   {/* Red */}
+                          <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={60} />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} />
+                          <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                          <Bar dataKey="Confirmed" stackId="a" fill="#4CAF50" name="Confirmed" />
+                          <Bar dataKey="Pending" stackId="a" fill="#FFC107" name="Pending" />
+                          <Bar dataKey="Cancelled" stackId="a" fill="#F44336" name="Cancelled" />
                         </BarChart>
                       </ResponsiveContainer>
                     </Paper>
-
-                    {/* Individual Pie Charts for each doctor */}
                     <Typography variant="h6" component="h3" gutterBottom sx={{ mb: 2 }}>
                       Detailed Appointment Breakdown per Doctor
                     </Typography>
                     <Grid container spacing={3}>
                       {doctorStats.map((stat) => (
-                        <Grid item xs={12} sm={6} md={6} key={stat.doctorId}> {/* Responsive grid */}
-<Paper elevation={2} sx={{
+                        <Grid item xs={12} sm={6} md={6} key={stat.doctorId}>
+                          <Paper elevation={2} sx={{
                             p: 2,
                             height: '100%',
-                            // Removed width: '150%' - Paper should naturally fill the Grid item's width
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
                             borderRadius: 2,
-                            overflow: 'hidden' // Ensure no overflow from content
-                          }}>                            <Typography variant="subtitle1" align="center" sx={{ mb: 1, fontWeight: 'medium' }}>
+                            overflow: 'hidden'
+                          }}>
+                            <Typography variant="subtitle1" align="center" sx={{ mb: 1, fontWeight: 'medium' }}>
                               {stat.doctorName}
                             </Typography>
                             <ResponsiveContainer width="100%" height={200}>
-  <PieChart>
-    <Pie
-      data={[
-        { name: 'Confirmed', value: stat.confirmed },
-        { name: 'Pending', value: stat.pending },
-        { name: 'Cancelled', value: stat.cancelled },
-      ].filter(entry => entry.value > 0)} // Filter out zero values for cleaner pies
-      cx="50%"
-      cy="50%"
-      labelLine={false}
-      outerRadius={70} // Decreased outerRadius to 70 (from 80) for more space
-      dataKey="value"
-      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-      style={{ fontSize: '12px' }} // Apply font size directly to the Pie labels
-    >
-      <Cell key={`cell-confirmed-${stat.doctorId}`} fill="#4CAF50" />
-      <Cell key={`cell-pending-${stat.doctorId}`} fill="#FFC107" />
-      <Cell key={`cell-cancelled-${stat.doctorId}`} fill="#F44336" />
-    </Pie>
-    <Tooltip formatter={(value) => `${value} appointments`} /> {/* Custom tooltip formatter */}
-    <Legend
-      layout="vertical"
-      align="right"
-      verticalAlign="middle"
-      wrapperStyle={{ fontSize: '12px' }} // Made legend font size smaller
-    />
-  </PieChart>
-</ResponsiveContainer>
-
+                              <PieChart>
+                                <Pie
+                                  data={[
+                                    { name: 'Confirmed', value: stat.confirmed },
+                                    { name: 'Pending', value: stat.pending },
+                                    { name: 'Cancelled', value: stat.cancelled },
+                                  ].filter(entry => entry.value > 0)}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  outerRadius={70}
+                                  dataKey="value"
+                                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                  style={{ fontSize: '12px' }}
+                                >
+                                  <Cell key={`cell-confirmed-${stat.doctorId}`} fill="#4CAF50" />
+                                  <Cell key={`cell-pending-${stat.doctorId}`} fill="#FFC107" />
+                                  <Cell key={`cell-cancelled-${stat.doctorId}`} fill="#F44336" />
+                                </Pie>
+                                <Tooltip formatter={(value) => `${value} appointments`} />
+                                <Legend
+                                  layout="vertical"
+                                  align="right"
+                                  verticalAlign="middle"
+                                  wrapperStyle={{ fontSize: '12px' }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
                             <Typography variant="body2" align="center" sx={{ mt: 1, color: 'text.secondary' }}>
-                                Total Appointments: <Typography component="span" variant="body1" sx={{ fontWeight: 'bold' }}>{stat.totalAppointmentsReceived}</Typography>
+                              Total Appointments: <Typography component="span" variant="body1" sx={{ fontWeight: 'bold' }}>{stat.totalAppointmentsReceived}</Typography>
                             </Typography>
                           </Paper>
                         </Grid>
@@ -740,7 +951,7 @@ export default function AdminHome() {
                   </Box>
                 )}
               </Box>
-            )} {/* CLOSING PARENTHESIS FOR activeTab === 8 CONDITIONAL RENDERING */}
+            )}
           </Box>
         </Box>
       </Paper>
@@ -753,22 +964,28 @@ export default function AdminHome() {
             margin="dense"
             label="Hospital Name"
             value={hospitalName}
-            onChange={(e) => setHospitalName(e.target.value)}
+            onChange={(e) => { setHospitalName(e.target.value); setHospitalNameError(""); }}
             fullWidth
+            error={!!hospitalNameError}
+            helperText={hospitalNameError}
           />
           <TextField
             margin="dense"
             label="City"
             value={hospitalCity}
-            onChange={(e) => setHospitalCity(e.target.value)}
+            onChange={(e) => { setHospitalCity(e.target.value); setHospitalCityError(""); }}
             fullWidth
+            error={!!hospitalCityError}
+            helperText={hospitalCityError}
           />
           <TextField
             margin="dense"
             label="Address"
             value={hospitalAddress}
-            onChange={(e) => setHospitalAddress(e.target.value)}
+            onChange={(e) => { setHospitalAddress(e.target.value); setHospitalAddressError(""); }}
             fullWidth
+            error={!!hospitalAddressError}
+            helperText={hospitalAddressError}
           />
           <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
             <Button variant="contained" color="primary" onClick={handleSubmitHospital}>
@@ -789,8 +1006,10 @@ export default function AdminHome() {
             margin="dense"
             label="Specialization Name"
             value={specializationName}
-            onChange={(e) => setSpecializationName(e.target.value)}
+            onChange={(e) => { setSpecializationName(e.target.value); setSpecializationNameError(""); }}
             fullWidth
+            error={!!specializationNameError}
+            helperText={specializationNameError}
           />
           <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
             <Button variant="contained" color="primary" onClick={handleSubmitSpecialization}>
@@ -803,6 +1022,7 @@ export default function AdminHome() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog for editing users */}
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
@@ -813,6 +1033,8 @@ export default function AdminHome() {
             fullWidth
             value={selectedUser?.firstName || ""}
             onChange={handleChange}
+            error={!!userFirstNameError}
+            helperText={userFirstNameError}
           />
           <TextField
             margin="dense"
@@ -821,6 +1043,8 @@ export default function AdminHome() {
             fullWidth
             value={selectedUser?.lastName || ""}
             onChange={handleChange}
+            error={!!userLastNameError}
+            helperText={userLastNameError}
           />
           <TextField
             margin="dense"
@@ -830,6 +1054,8 @@ export default function AdminHome() {
             fullWidth
             value={selectedUser?.email || ""}
             onChange={handleChange}
+            error={!!userEmailError}
+            helperText={userEmailError}
           />
           <TextField
             margin="dense"
@@ -838,8 +1064,9 @@ export default function AdminHome() {
             fullWidth
             value={selectedUser?.role || ""}
             onChange={handleChange}
+            error={!!userRoleError}
+            helperText={userRoleError}
           />
-
           <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
             <Button variant="contained" color="primary" onClick={handleSubmit}>
               Save

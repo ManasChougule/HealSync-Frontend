@@ -65,8 +65,28 @@ export default function Login() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const validateForm = () => {
+    const { email, password, role } = formData;
+    let isValid = true;
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setErrorMessage("Enter a valid email address.");
+      isValid = false;
+    } else if (password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters long.");
+      isValid = false;
+    } else if (!role) {
+      setErrorMessage("Please select a role.");
+      isValid = false;
+    } else {
+      setErrorMessage("");
+    }
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     const loginService = new LoginService();
     try {
       const response = await loginService.login(formData);

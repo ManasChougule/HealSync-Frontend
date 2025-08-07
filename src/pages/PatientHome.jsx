@@ -10,31 +10,27 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
-import Spinner from 'react-bootstrap/Spinner';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Tab from 'react-bootstrap/Tab';
 
-// Material-UI Imports (for specific components like Select/TextField if needed, or Typography)
+// Material-UI Imports
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box'; // For flexbox utilities
-import CircularProgress from '@mui/material/CircularProgress'; // For loading indicator
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 
-// Icons (using react-icons for a mix, or you can use Material-UI Icons)
-import { FaStethoscope, FaCalendarAlt, FaAmbulance, FaArrowLeft, FaSignOutAlt, FaEdit, FaTrashAlt } from 'react-icons/fa';
+// Icons (using react-icons)
+import { FaArrowLeft, FaSignOutAlt, FaEdit, FaTrashAlt } from 'react-icons/fa';
 
 // Local Assets
 import HealSync from "../assets/HealSync.png";
-import health from "../assets/health.png"; // Assuming these are still used for images
+import health from "../assets/health.png";
 import timetable from "../assets/timetable.png";
 import ambulanceIcon from "../assets/ambulance.png";
-
-// You might need to adjust or remove this if all styling is handled by RB/MUI
-// import "../css/PatientHome.css";
 
 const PatientHome = () => {
   const [userName, setUserName] = useState("");
@@ -63,6 +59,14 @@ const PatientHome = () => {
   const [ambulanceBookingSuccess, setAmbulanceBookingSuccess] = useState(false);
   const [ambulanceMessage, setAmbulanceMessage] = useState("");
 
+  // Validation states for ambulance booking
+  const [ambulanceLocationError, setAmbulanceLocationError] = useState("");
+  const [ambulanceNumberError, setAmbulanceNumberError] = useState("");
+
+  // Regex for validation
+  const vehicleNumberRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/;
+  const addressRegex = /^[a-zA-Z0-9\s,.'-]{3,}$/; // Allows alphanumeric, spaces, and common punctuation for addresses
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,12 +84,12 @@ const PatientHome = () => {
   const fetchDoctors = async (specializationName) => {
     setLoading(true);
     try {
+      // TODO: Add JWT authentication check here
       const response = await axios.get(
         `http://localhost:8080/doctors/doctors?specializationName=${specializationName}`
       );
       setDoctors(response.data);
     } catch (error) {
-      console.error("Error occurred while fetching doctors:", error);
       alert("Failed to fetch doctors. Please try again later.");
     } finally {
       setLoading(false);
@@ -122,6 +126,7 @@ const PatientHome = () => {
   useEffect(() => {
     const fetchSpecializations = async () => {
       try {
+        // TODO: Add JWT authentication check here
         const response = await axios.get(
           "http://localhost:8080/specializations/all"
         );
@@ -132,7 +137,6 @@ const PatientHome = () => {
         }));
         setSpecializationOptions(options);
       } catch (error) {
-        console.error("Error occurred while fetching specializations:", error);
         alert("Failed to fetch specializations. Please try again later.");
       }
     };
@@ -142,22 +146,21 @@ const PatientHome = () => {
 
   const fetchAppointments = async (patientId) => {
     if (!patientId) {
-      console.warn("Patient ID is missing, cannot fetch appointments.");
       return;
     }
     try {
+      // TODO: Add JWT authentication check here
       const response = await axios.get(
         `http://localhost:8080/appointments/patient/${patientId}`
       );
       setAppointments(response.data);
     } catch (error) {
-      console.error("An error occurred while fetching appointments:", error);
       alert("Failed to fetch your appointments. Please try again.");
     }
   };
 
-  const handleSpecializationChange = (e) => { // e is the event object
-    const value = e.target.value; // For MUI Select, value is directly on e.target.value
+  const handleSpecializationChange = (e) => {
+    const value = e.target.value;
     setSpecialization(value);
     fetchDoctors(value);
   };
@@ -168,7 +171,24 @@ const PatientHome = () => {
     setSelectedTime("");
     setAppointmentSuccess(false);
     setAppointmentMessage("");
-    // Clear message when a new doctor is selected
+
+    const daysOptions = doctor.workingDays
+      ? doctor.workingDays.split(",").map((day) => ({
+          key: day,
+          text: day,
+          value: day,
+        }))
+      : [];
+    const hoursOptions = doctor.workingHours
+      ? doctor.workingHours.split(",").map((hour) => ({
+          key: hour,
+          text: hour,
+          value: hour,
+        }))
+      : [];
+
+    setWorkingDaysOptions(daysOptions);
+    setWorkingHoursOptions(hoursOptions);
   };
 
   const handleDaySelect = (day) => {
@@ -176,14 +196,12 @@ const PatientHome = () => {
     setSelectedTime("");
     setAppointmentSuccess(false);
     setAppointmentMessage("");
-    // Clear message when day changes
   };
 
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
     setAppointmentSuccess(false);
     setAppointmentMessage("");
-    // Clear message when time changes
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
@@ -191,6 +209,7 @@ const PatientHome = () => {
       return;
     }
     try {
+      // TODO: Add JWT token to headers
       const response = await axios.delete(
         `http://localhost:8080/registration/appointments/delete/${appointmentId}`
       );
@@ -201,7 +220,6 @@ const PatientHome = () => {
         );
       }
     } catch (error) {
-      console.error("An error occurred while deleting the appointment:", error);
       alert("An error occurred while deleting the appointment.");
     }
   };
@@ -209,19 +227,19 @@ const PatientHome = () => {
   function getStatusColor(status) {
     switch ((status || "").toLowerCase()) {
       case "pending":
-        return "warning"; // Bootstrap variant
+        return "warning";
       case "confirmed":
-        return "success"; // Bootstrap variant
+        return "success";
       case "cancelled":
-        return "danger"; // Bootstrap variant
+        return "danger";
       default:
-        return "secondary"; // Bootstrap variant
+        return "secondary";
     }
   }
 
   const handleAppointmentRequest = async () => {
     setAppointmentSuccess(false);
-    setAppointmentMessage(""); // Clear previous messages immediately
+    setAppointmentMessage("");
 
     if (!userData || !userData.patientId) {
       setAppointmentMessage("User information (Patient ID) could not be loaded. Please log in again.");
@@ -240,6 +258,7 @@ const PatientHome = () => {
         day: selectedDay,
         time: selectedTime,
       };
+      // TODO: Add JWT token to headers
       const availabilityResponse = await axios.post(
         "http://localhost:8080/appointments/check-availability",
         availabilityCheckData
@@ -253,6 +272,7 @@ const PatientHome = () => {
           time: selectedTime,
         };
 
+        // TODO: Add JWT token to headers
         const appointmentResponse = await axios.post(
           "http://localhost:8080/appointments/create",
           appointmentData
@@ -261,23 +281,17 @@ const PatientHome = () => {
         if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
           setAppointmentSuccess(true);
           setAppointmentMessage("Your appointment has been saved successfully!");
-          fetchAppointments(userData.patientId); // Refresh appointments list
-
-          // Introduce a delay before clearing the form fields
-          setTimeout(() => {
-            setSelectedDoctor(null);
-            setSpecialization("");
-            setSelectedDay("");
-            setSelectedTime("");
-            setAppointmentMessage(""); // Clear the success message after it's been seen
-          }, 3000); // 3-second delay
+          fetchAppointments(userData.patientId);
+          setSelectedDoctor(null);
+          setSpecialization("");
+          setSelectedDay("");
+          setSelectedTime("");
         }
       } else {
           setAppointmentSuccess(false);
           setAppointmentMessage(availabilityResponse.data || "Doctor is not available at this time.");
       }
     } catch (error) {
-      console.error("Error during appointment request:", error);
       setAppointmentSuccess(false);
       let msg = "An unknown error occurred. Please try again.";
       if (error.response) {
@@ -304,11 +318,13 @@ const PatientHome = () => {
     }
 
     try {
+      // TODO: Add JWT authentication check here
       const availabilityResponse = await axios.get(
         `http://localhost:8080/appointments/check-availability?doctorId=${editAppointment.doctor.id}&day=${editDay}&time=${editTime}`
       );
 
       if (availabilityResponse.data === true) {
+        // TODO: Add JWT token to headers
         const response = await axios.put(
           `http://localhost:8080/appointments/update/${editAppointment.id}?day=${editDay}&time=${editTime}`
         );
@@ -322,7 +338,6 @@ const PatientHome = () => {
           alert("The doctor is not available at this time for the update.");
       }
     } catch (error) {
-      console.error("An error occurred while updating the appointment:", error);
       let errorMessage = "An unknown error occurred during update. Please try again.";
       if (error.response) {
         if (typeof error.response.data === 'string') {
@@ -354,6 +369,31 @@ const PatientHome = () => {
     navigate(-1);
   };
 
+  const validateAmbulanceBooking = () => {
+    let isValid = true;
+
+    // Validate Current Location
+    if (!ambulanceLocation.trim()) {
+      setAmbulanceLocationError("Current location is required.");
+      isValid = false;
+    } else if (!addressRegex.test(ambulanceLocation)) {
+      setAmbulanceLocationError("Enter a valid address.");
+      isValid = false;
+    } else {
+      setAmbulanceLocationError("");
+    }
+
+    // Validate Ambulance Number (if provided)
+    if (ambulanceNumber.trim() && !vehicleNumberRegex.test(ambulanceNumber)) {
+      setAmbulanceNumberError("Enter a valid vehicle number (e.g., MH12AB1234).");
+      isValid = false;
+    } else {
+      setAmbulanceNumberError("");
+    }
+
+    return isValid;
+  };
+
   const handleAmbulanceBooking = async () => {
     setAmbulanceBookingSuccess(false);
     setAmbulanceMessage("");
@@ -363,20 +403,21 @@ const PatientHome = () => {
       return;
     }
 
-    const patientId = userData.patientId;
-    if (!ambulanceLocation) {
-      setAmbulanceMessage("Please provide your current location to book an ambulance.");
+    if (!validateAmbulanceBooking()) {
       return;
     }
+
+    const patientId = userData.patientId;
 
     try {
       const ambulanceData = {
         patientId: patientId,
-        ambulanceNumber: ambulanceNumber,
-        location: ambulanceLocation,
-        notes: ambulanceNotes,
+        ambulanceNumber: ambulanceNumber.trim() || null, // Send null if empty
+        location: ambulanceLocation.trim(),
+        notes: ambulanceNotes.trim(),
       };
 
+      // TODO: Add JWT token to headers
       const response = await axios.post(
         "http://localhost:8080/api/ambulance-bookings/book",
         ambulanceData
@@ -388,9 +429,10 @@ const PatientHome = () => {
         setAmbulanceNumber("");
         setAmbulanceLocation("");
         setAmbulanceNotes("");
+        setAmbulanceLocationError(""); // Clear errors on success
+        setAmbulanceNumberError("");
       }
     } catch (error) {
-      console.error("Error during ambulance booking:", error);
       setAmbulanceBookingSuccess(false);
       let msg = "An unknown error occurred. Please try again.";
       if (error.response) {
@@ -580,7 +622,6 @@ const PatientHome = () => {
                         </Form.Group>
 
                         <Button
-                          type="button"
                           variant="primary"
                           className="w-100 mt-3"
                           onClick={handleAppointmentRequest}
@@ -672,10 +713,14 @@ const PatientHome = () => {
                     <Form.Label>Ambulance Number (Optional)</Form.Label>
                     <Form.Control
                       type="text"
-                      placeholder="e.g., AB1234"
+                      placeholder="e.g., MH12AB1234"
                       value={ambulanceNumber}
-                      onChange={(e) => setAmbulanceNumber(e.target.value)}
+                      onChange={(e) => { setAmbulanceNumber(e.target.value); setAmbulanceNumberError(""); }}
+                      isInvalid={!!ambulanceNumberError}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      {ambulanceNumberError}
+                    </Form.Control.Feedback>
                   </Form.Group>
 
                   <Form.Group className="mb-3">
@@ -684,9 +729,13 @@ const PatientHome = () => {
                       type="text"
                       placeholder="e.g., 123 Main St, City"
                       value={ambulanceLocation}
-                      onChange={(e) => { setAmbulanceLocation(e.target.value); setAmbulanceBookingSuccess(false); setAmbulanceMessage(""); }}
+                      onChange={(e) => { setAmbulanceLocation(e.target.value); setAmbulanceBookingSuccess(false); setAmbulanceMessage(""); setAmbulanceLocationError(""); }}
                       required
+                      isInvalid={!!ambulanceLocationError}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      {ambulanceLocationError}
+                    </Form.Control.Feedback>
                   </Form.Group>
 
                   <Form.Group className="mb-3">
@@ -704,7 +753,7 @@ const PatientHome = () => {
                     variant="primary"
                     className="w-100 mt-3"
                     onClick={handleAmbulanceBooking}
-                    disabled={!ambulanceLocation}
+                    disabled={!ambulanceLocation.trim()} // Disable if location is empty
                   >
                     Request Ambulance
                   </Button>

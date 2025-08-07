@@ -14,9 +14,8 @@ import Register from './pages/Register';
 import AdminHome from './pages/AdminHome';
 import DoctorHome from './pages/DoctorHome';
 import PatientHome from './pages/PatientHome';
-import AmbulanceBooking from './pages/AmbulanceBooking'; // This component is imported but not used in routes
-import AddAmbulance from './pages/AddAmbulance';
-import BookAmbulance from './pages/BookAmbulance';
+// Removed: import BookAmbulance from './pages/BookAmbulance'; as it's no longer a separate page
+
 
 function App() {
   return (
@@ -32,8 +31,7 @@ function App() {
             <Route path="/admin-home" element={<AdminHome />} />
             <Route path="/patient-home" element={<PatientHome />} />
             <Route path="/doctor-home" element={<DoctorHome />} />
-            <Route path="/admin/add-ambulance" element={<AddAmbulance />} />
-            <Route path="/book-ambulance" element={<BookAmbulance />} />
+            {/* Removed the /book-ambulance route as it's now handled within PatientHome */}
             {/* Add more routes for your other pages here */}
           </Routes>
         </main>

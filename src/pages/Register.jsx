@@ -37,7 +37,6 @@ const StyledContainer = styled(Box)(({ theme }) => ({
   },
 }));
 
-
 const StyledTextField = styled(TextField)({
   "& .MuiOutlinedInput-root": {
     borderRadius: "50px",
@@ -88,7 +87,22 @@ export default function Register() {
   const [specializationOptions, setSpecializationOptions] = useState([]);
   const [specialization, setSpecialization] = useState("");
 
+  // Validation error states
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [firstNameError, setFirstNameError] = useState("");
+  const [lastNameError, setLastNameError] = useState("");
+  const [roleError, setRoleError] = useState("");
+  const [genderError, setGenderError] = useState("");
+  const [specializationError, setSpecializationError] = useState("");
+
+  // Regex patterns
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+  const nameRegex = /^[A-Za-z\s]+$/;
+
   useEffect(() => {
+    // TODO: Add JWT authentication check here (if this endpoint requires it)
     axios
       .get("http://localhost:8080/specializations/all")
       .then((response) => {
@@ -100,29 +114,120 @@ export default function Register() {
         setSpecializationOptions(options);
       })
       .catch((error) => {
-        console.error("Error loading specializations:", error);
+        // Removed console.error
+        setErrorMessage("Error loading specializations. Please try again.");
       });
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    // Clear specific error when input changes
+    if (name === "email") setEmailError("");
+    if (name === "password") setPasswordError("");
+    if (name === "firstName") setFirstNameError("");
+    if (name === "lastName") setLastNameError("");
   };
 
   const handleRoleChange = (event) => {
     setFormData({ ...formData, role: event.target.value });
+    setRoleError(""); // Clear error on change
+    setSpecialization(""); // Clear specialization if role changes
+    setSpecializationError(""); // Clear specialization error
   };
 
   const handleGenderChange = (event) => {
     setFormData({ ...formData, gender: event.target.value });
+    setGenderError(""); // Clear error on change
   };
 
   const handleSpecializationChange = (event) => {
     setSpecialization(event.target.value);
+    setSpecializationError(""); // Clear error on change
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+
+    // Email validation
+    if (!formData.email.trim()) {
+      setEmailError("Email is required.");
+      isValid = false;
+    } else if (!emailRegex.test(formData.email)) {
+      setEmailError("Enter a valid email address.");
+      isValid = false;
+    } else {
+      setEmailError("");
+    }
+
+    // Password validation
+    if (!formData.password.trim()) {
+      setPasswordError("Password is required.");
+      isValid = false;
+    } else if (!passwordRegex.test(formData.password)) {
+      setPasswordError("Password must be 8+ characters, with letters and numbers.");
+      isValid = false;
+    } else {
+      setPasswordError("");
+    }
+
+    // First Name validation
+    if (!formData.firstName.trim()) {
+      setFirstNameError("First Name is required.");
+      isValid = false;
+    } else if (!nameRegex.test(formData.firstName)) {
+      setFirstNameError("First Name should contain only letters.");
+      isValid = false;
+    } else {
+      setFirstNameError("");
+    }
+
+    // Last Name validation
+    if (!formData.lastName.trim()) {
+      setLastNameError("Last Name is required.");
+      isValid = false;
+    } else if (!nameRegex.test(formData.lastName)) {
+      setLastNameError("Last Name should contain only letters.");
+      isValid = false;
+    } else {
+      setLastNameError("");
+    }
+
+    // Gender validation
+    if (!formData.gender) {
+      setGenderError("Gender is required.");
+      isValid = false;
+    } else {
+      setGenderError("");
+    }
+
+    // Role validation
+    if (!formData.role) {
+      setRoleError("Role is required.");
+      isValid = false;
+    } else {
+      setRoleError("");
+    }
+
+    // Specialization validation (only for DOCTOR role)
+    if (formData.role === "DOCTOR" && !specialization) {
+      setSpecializationError("Specialization is required for doctors.");
+      isValid = false;
+    } else if (formData.role === "DOCTOR") { // Clear error if it was set but now valid
+      setSpecializationError("");
+    }
+
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage(""); // Clear general error message
+
+    if (!validateForm()) {
+      return; // Stop submission if validation fails
+    }
+
     const registerService = new RegisterService();
 
     try {
@@ -131,6 +236,7 @@ export default function Register() {
         updatedFormData.specializationId = specialization;
       }
 
+      // TODO: Add JWT token to headers (if registration endpoint requires it)
       const response = await registerService.saveUser(updatedFormData);
 
       if (response.status === 200) {
@@ -140,7 +246,7 @@ export default function Register() {
         setErrorMessage("Registration Failed. Please try again.");
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      // Removed console.error
       setErrorMessage("An error occurred during registration. Please try again.");
     }
   };
@@ -178,6 +284,8 @@ export default function Register() {
             fullWidth
             margin="normal"
             variant="outlined"
+            error={!!emailError}
+            helperText={emailError}
           />
           <StyledTextField
             label="Password"
@@ -189,8 +297,10 @@ export default function Register() {
             fullWidth
             margin="normal"
             variant="outlined"
+            error={!!passwordError}
+            helperText={passwordError}
           />
-          <FormControl fullWidth margin="normal" sx={{ marginBottom: "20px" }}>
+          <FormControl fullWidth margin="normal" sx={{ marginBottom: "20px" }} error={!!genderError}>
             <InputLabel id="gender-label">Select Gender</InputLabel>
             <StyledSelect
               labelId="gender-label"
@@ -201,13 +311,14 @@ export default function Register() {
               name="gender"
               displayEmpty
             >
-              <MenuItem value="" disabled></MenuItem>
+              <MenuItem value="" disabled>Select Gender</MenuItem> {/* Added placeholder */}
               {genders.map((option) => (
                 <MenuItem key={option.key} value={option.value}>
                   {option.text}
                 </MenuItem>
               ))}
             </StyledSelect>
+            {genderError && <Typography variant="caption" color="error">{genderError}</Typography>}
           </FormControl>
           <StyledTextField
             label="First Name"
@@ -218,6 +329,8 @@ export default function Register() {
             fullWidth
             margin="normal"
             variant="outlined"
+            error={!!firstNameError}
+            helperText={firstNameError}
           />
           <StyledTextField
             label="Last Name"
@@ -228,8 +341,10 @@ export default function Register() {
             fullWidth
             margin="normal"
             variant="outlined"
+            error={!!lastNameError}
+            helperText={lastNameError}
           />
-          <FormControl fullWidth margin="normal" sx={{ marginBottom: "20px" }}>
+          <FormControl fullWidth margin="normal" sx={{ marginBottom: "20px" }} error={!!roleError}>
             <InputLabel id="role-label">Select Role</InputLabel>
             <StyledSelect
               labelId="role-label"
@@ -240,16 +355,18 @@ export default function Register() {
               name="role"
               displayEmpty
             >
+              <MenuItem value="" disabled>Select Role</MenuItem> {/* Added placeholder */}
               {roles.map((option) => (
                 <MenuItem key={option.key} value={option.value}>
                   {option.text}
                 </MenuItem>
               ))}
             </StyledSelect>
+            {roleError && <Typography variant="caption" color="error">{roleError}</Typography>}
           </FormControl>
 
           {formData.role === "DOCTOR" && (
-            <FormControl fullWidth margin="normal" sx={{ marginBottom: "20px" }}>
+            <FormControl fullWidth margin="normal" sx={{ marginBottom: "20px" }} error={!!specializationError}>
               <InputLabel id="specialization-label">Specialization</InputLabel>
               <StyledSelect
                 labelId="specialization-label"
@@ -267,6 +384,7 @@ export default function Register() {
                   </MenuItem>
                 ))}
               </StyledSelect>
+              {specializationError && <Typography variant="caption" color="error">{specializationError}</Typography>}
             </FormControl>
           )}
 

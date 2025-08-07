@@ -10,7 +10,6 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
-import Spinner from 'react-bootstrap/Spinner';
 import Nav from 'react-bootstrap/Nav';
 import Tab from 'react-bootstrap/Tab';
 
@@ -22,11 +21,9 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
-// Removed TextField import as it's no longer needed for doctorLoadIdInput
-// import TextField from '@mui/material/TextField';
 
 // Icons from react-icons
-import { FaStethoscope, FaEdit, FaCalendarAlt, FaArrowLeft, FaSignOutAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaChartBar } from 'react-icons/fa'; // Added FaChartBar
+import { FaArrowLeft, FaSignOutAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaChartBar } from 'react-icons/fa';
 
 // Local Assets (assuming these are still used for images)
 import stethoscope from "../assets/stethoscope.png";
@@ -34,7 +31,7 @@ import edit from "../assets/edit.png";
 import timetable from "../assets/timetable.png";
 
 // Recharts Imports for Bar Chart
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts'; // Added LabelList
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
 export default function DoctorHome() {
   const [doctorName, setDoctorName] = useState("");
@@ -44,17 +41,21 @@ export default function DoctorHome() {
   const [doctorDetails, setDoctorDetails] = useState({
     hospital: "",
     specialization: "",
-    workingDays: [], // Changed to array for multi-select
-    workingHours: [], // Changed to array for multi-select
+    workingDays: [],
+    workingHours: [],
   });
 
   const [hospitalOptions, setHospitalOptions] = useState([]);
   const [specializationOptions, setSpecializationOptions] = useState([]);
 
-  // NEW STATES FOR DOCTOR LOAD TAB - doctorLoadIdInput and doctorLoadError removed
-  const [doctorLoadData, setDoctorLoadData] = useState(null); // Stores the fetched doctor load data
-  const [loadingDoctorLoad, setLoadingDoctorLoad] = useState(false); // Loading state for doctor load data
-  // const [doctorLoadError, setDoctorLoadError] = useState(""); // Removed as input field is gone
+  const [doctorLoadData, setDoctorLoadData] = useState(null);
+  const [loadingDoctorLoad, setLoadingDoctorLoad] = useState(false);
+
+  // Validation states for doctor details form
+  const [hospitalError, setHospitalError] = useState("");
+  const [specializationError, setSpecializationError] = useState("");
+  const [workingDaysError, setWorkingDaysError] = useState("");
+  const [workingHoursError, setWorkingHoursError] = useState("");
 
   const navigate = useNavigate();
 
@@ -90,11 +91,11 @@ export default function DoctorHome() {
     if (user) {
       setDoctorName(`${user.firstName} ${user.lastName}`);
       setDoctorId(user.doctorId);
-      // doctorLoadIdInput is no longer needed, so no pre-fill here
     }
   }, []);
 
   useEffect(() => {
+    // TODO: Add JWT authentication check here
     axios
       .get("http://localhost:8080/hospitals/all")
       .then((response) => {
@@ -106,10 +107,11 @@ export default function DoctorHome() {
         setHospitalOptions(options);
       })
       .catch((error) => {
-        console.error("An error occurred while loading hospitals:", error);
+        // console.error("An error occurred while loading hospitals:", error);
         alert("An error occurred while loading hospitals.");
       });
 
+    // TODO: Add JWT authentication check here
     axios
       .get("http://localhost:8080/specializations/all")
       .then((response) => {
@@ -121,15 +123,16 @@ export default function DoctorHome() {
         setSpecializationOptions(options);
       })
       .catch((error) => {
-        console.error(
-          "An error occurred while loading specializations:",
-          error
-        );
+        // console.error(
+        //   "An error occurred while loading specializations:",
+        //   error
+        // );
         alert("An error occurred while loading specializations.");
       });
 
     if (doctorId) {
       setLoading(true);
+      // TODO: Add JWT authentication check here
       axios
         .get(`http://localhost:8080/appointments/doctor/${doctorId}`)
         .then((response) => {
@@ -137,7 +140,7 @@ export default function DoctorHome() {
           setLoading(false);
         })
         .catch((error) => {
-          console.error("An error occurred while loading appointments:", error);
+          // console.error("An error occurred while loading appointments:", error);
           alert("An error occurred while loading appointments.");
           setLoading(false);
         });
@@ -150,6 +153,7 @@ export default function DoctorHome() {
       hospitalOptions.length > 0 &&
       specializationOptions.length > 0
     ) {
+      // TODO: Add JWT authentication check here
       axios
         .get(`http://localhost:8080/doctors/${doctorId}`)
         .then((response) => {
@@ -171,38 +175,36 @@ export default function DoctorHome() {
           });
         })
         .catch((error) => {
-          console.error(
-            "An error occurred while loading doctor information:",
-            error
-          );
+          // console.error(
+          //   "An error occurred while loading doctor information:",
+          //   error
+          // );
         });
     }
   }, [doctorId, hospitalOptions, specializationOptions]);
 
-  // MODIFIED useEffect to fetch doctor load data - now uses doctorId directly
-  // This useEffect will now also re-run if 'appointments' state changes,
-  // ensuring the chart updates when an appointment status is changed.
   useEffect(() => {
     const fetchDoctorLoadData = async () => {
-      if (!doctorId) { // Only proceed if doctorId is available
+      if (!doctorId) {
         setDoctorLoadData(null);
         return;
       }
 
       setLoadingDoctorLoad(true);
       try {
-        const response = await axios.get(`http://localhost:8080/appointments/doctor-load/${doctorId}`); // Use doctorId directly
+        // TODO: Add JWT authentication check here
+        const response = await axios.get(`http://localhost:8080/appointments/doctor-load/${doctorId}`);
         setDoctorLoadData(response.data);
       } catch (error) {
-        console.error("Error fetching doctor load data:", error);
+        // console.error("Error fetching doctor load data:", error);
         setDoctorLoadData(null);
       } finally {
         setLoadingDoctorLoad(false);
       }
     };
 
-    fetchDoctorLoadData(); // Call the function
-  }, [doctorId, appointments]); // Dependency on doctorId AND appointments
+    fetchDoctorLoadData();
+  }, [doctorId, appointments]);
 
   // Appointment statuses with react-icons
   const statusOptions = [
@@ -237,12 +239,12 @@ export default function DoctorHome() {
 
   // Function to send status update to the backend
   const handleStatusChange = (appointmentId, newStatus) => {
+    // TODO: Add JWT token to headers
     axios
       .put(
         `http://localhost:8080/appointments/update-status/${appointmentId}?status=${newStatus}`
       )
       .then((response) => {
-        // Update the local appointments state
         setAppointments(
           appointments.map((appointment) =>
             appointment.id === appointmentId
@@ -251,20 +253,51 @@ export default function DoctorHome() {
           )
         );
         alert("Appointment status updated successfully!");
-        // The useEffect for doctorLoadData now depends on 'appointments',
-        // so it will automatically re-fetch the chart data.
       })
       .catch((error) => {
-        console.error(
-          "An error occurred while updating the appointment status:",
-          error
-        );
+        // console.error(
+        //   "An error occurred while updating the appointment status:",
+        //   error
+        // );
         alert("An error occurred while updating the appointment status.");
       });
   };
 
+  const validateDoctorDetails = () => {
+    let isValid = true;
+    if (!doctorDetails.hospital) {
+      setHospitalError("Please select a hospital.");
+      isValid = false;
+    } else {
+      setHospitalError("");
+    }
+    if (!doctorDetails.specialization) {
+      setSpecializationError("Please select a specialization.");
+      isValid = false;
+    } else {
+      setSpecializationError("");
+    }
+    if (doctorDetails.workingDays.length === 0) {
+      setWorkingDaysError("Please select at least one working day.");
+      isValid = false;
+    } else {
+      setWorkingDaysError("");
+    }
+    if (doctorDetails.workingHours.length === 0) {
+      setWorkingHoursError("Please select at least one working hour.");
+      isValid = false;
+    } else {
+      setWorkingHoursError("");
+    }
+    return isValid;
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateDoctorDetails()) {
+      return;
+    }
 
     const updateData = {
       hospital: doctorDetails.hospital,
@@ -274,13 +307,14 @@ export default function DoctorHome() {
     };
 
     try {
-      const response = await axios.put(`http://localhost:8080/doctors/update/${doctorId}`, updateData);
+      // TODO: Add JWT token to headers
+      await axios.put(`http://localhost:8080/doctors/update/${doctorId}`, updateData);
       alert("Doctor information updated successfully!");
     } catch (error) {
-      console.error(
-        "An error occurred while updating doctor information:",
-        error.response ? error.response.data : error.message
-      );
+      // console.error(
+      //   "An error occurred while updating doctor information:",
+      //   error.response ? error.response.data : error.message
+      // );
       alert("An error occurred while updating doctor information.");
     }
   };
@@ -315,13 +349,11 @@ export default function DoctorHome() {
     if (!loadData || !loadData.load) {
       return [];
     }
-    // Map the load object into an array suitable for Recharts
     return Object.keys(loadData.load).map(day => ({
       day: day,
       Confirmed: loadData.load[day].confirmed,
       Pending: loadData.load[day].pending,
       Cancelled: loadData.load[day].cancelled,
-      // Calculate total for tooltip or custom label if needed
       Total: loadData.load[day].confirmed + loadData.load[day].pending + loadData.load[day].cancelled,
     }));
   };
@@ -329,7 +361,7 @@ export default function DoctorHome() {
   // Custom Tooltip for the chart to show total count
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload; // Access the data object for the current day
+      const data = payload[0].payload;
       return (
         <div style={{ backgroundColor: '#fff', padding: '10px', border: '1px solid #ccc' }}>
           <p className="label">{`${label}`}</p>
@@ -344,7 +376,6 @@ export default function DoctorHome() {
     }
     return null;
   };
-
 
   return (
     <Container className="my-4">
@@ -377,9 +408,8 @@ export default function DoctorHome() {
           <Nav.Item>
             <Nav.Link eventKey="editProfile">Edit Profile</Nav.Link>
           </Nav.Item>
-          {/* NEW TAB */}
           <Nav.Item>
-            <Nav.Link eventKey="doctorLoad">My Schedule Load</Nav.Link> {/* Changed tab name */}
+            <Nav.Link eventKey="doctorLoad">My Schedule Load</Nav.Link>
           </Nav.Item>
         </Nav>
 
@@ -460,16 +490,17 @@ export default function DoctorHome() {
                   {/* Hospital Dropdown */}
                   <Form.Group className="mb-3">
                     <Form.Label>Hospital</Form.Label>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={!!hospitalError}>
                       <InputLabel id="hospital-select-label">Hospital</InputLabel>
                       <Select
                         labelId="hospital-select-label"
                         id="hospital-select"
                         value={doctorDetails.hospital}
                         label="Hospital"
-                        onChange={(e) =>
-                          setDoctorDetails({ ...doctorDetails, hospital: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setDoctorDetails({ ...doctorDetails, hospital: e.target.value });
+                          setHospitalError(""); // Clear error on change
+                        }}
                       >
                         {hospitalOptions.map((option) => (
                           <MenuItem key={option.key} value={option.value}>
@@ -477,22 +508,24 @@ export default function DoctorHome() {
                           </MenuItem>
                         ))}
                       </Select>
+                      {hospitalError && <Form.Text className="text-danger">{hospitalError}</Form.Text>}
                     </FormControl>
                   </Form.Group>
 
                   {/* Specialization Dropdown */}
                   <Form.Group className="mb-3">
                     <Form.Label>Specialization</Form.Label>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={!!specializationError}>
                       <InputLabel id="specialization-select-label">Specialization</InputLabel>
                       <Select
                         labelId="specialization-select-label"
                         id="specialization-select"
                         value={doctorDetails.specialization}
                         label="Specialization"
-                        onChange={(e) =>
-                          setDoctorDetails({ ...doctorDetails, specialization: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setDoctorDetails({ ...doctorDetails, specialization: e.target.value });
+                          setSpecializationError(""); // Clear error on change
+                        }}
                       >
                         {specializationOptions.map((option) => (
                           <MenuItem key={option.key} value={option.value}>
@@ -500,13 +533,14 @@ export default function DoctorHome() {
                           </MenuItem>
                         ))}
                       </Select>
+                      {specializationError && <Form.Text className="text-danger">{specializationError}</Form.Text>}
                     </FormControl>
                   </Form.Group>
 
                   {/* Working Days Multi-select with smaller popup */}
                   <Form.Group className="mb-3">
                     <Form.Label>Working Days</Form.Label>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={!!workingDaysError}>
                       <InputLabel id="working-days-select-label">Working Days</InputLabel>
                       <Select
                         labelId="working-days-select-label"
@@ -514,15 +548,16 @@ export default function DoctorHome() {
                         multiple
                         value={doctorDetails.workingDays}
                         label="Working Days"
-                        onChange={(e) =>
-                          setDoctorDetails({ ...doctorDetails, workingDays: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setDoctorDetails({ ...doctorDetails, workingDays: e.target.value });
+                          setWorkingDaysError(""); // Clear error on change
+                        }}
                         renderValue={(selected) => selected.join(', ')}
                         MenuProps={{
                           PaperProps: {
                             style: {
-                              maxHeight: 200, // Max height for the popup
-                              width: 250,    // Max width for the popup
+                              maxHeight: 200,
+                              width: 250,
                             },
                           },
                         }}
@@ -533,13 +568,14 @@ export default function DoctorHome() {
                           </MenuItem>
                         ))}
                       </Select>
+                      {workingDaysError && <Form.Text className="text-danger">{workingDaysError}</Form.Text>}
                     </FormControl>
                   </Form.Group>
 
                   {/* Working Hours Multi-select with smaller popup */}
                   <Form.Group className="mb-3">
                     <Form.Label>Working Hours</Form.Label>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={!!workingHoursError}>
                       <InputLabel id="working-hours-select-label">Working Hours</InputLabel>
                       <Select
                         labelId="working-hours-select-label"
@@ -547,15 +583,16 @@ export default function DoctorHome() {
                         multiple
                         value={doctorDetails.workingHours}
                         label="Working Hours"
-                        onChange={(e) =>
-                          setDoctorDetails({ ...doctorDetails, workingHours: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setDoctorDetails({ ...doctorDetails, workingHours: e.target.value });
+                          setWorkingHoursError(""); // Clear error on change
+                        }}
                         renderValue={(selected) => selected.join(', ')}
                         MenuProps={{
                           PaperProps: {
                             style: {
-                              maxHeight: 200, // Max height for the popup
-                              width: 250,    // Max width for the popup
+                              maxHeight: 200,
+                              width: 250,
                             },
                           },
                         }}
@@ -566,6 +603,7 @@ export default function DoctorHome() {
                           </MenuItem>
                         ))}
                       </Select>
+                      {workingHoursError && <Form.Text className="text-danger">{workingHoursError}</Form.Text>}
                     </FormControl>
                   </Form.Group>
 
@@ -577,7 +615,7 @@ export default function DoctorHome() {
             </Card>
           </Tab.Pane>
 
-          {/* NEW Doctor Load Tab - Modified to show only logged-in doctor's load */}
+          {/* Doctor Load Tab */}
           <Tab.Pane eventKey="doctorLoad">
             <Card className="shadow-sm p-4 mb-4">
               <Card.Body>
@@ -586,16 +624,13 @@ export default function DoctorHome() {
                   My Schedule Load - Day Wise
                 </Typography>
 
-                {/* Removed the TextField for Doctor ID input */}
-                {/* Removed doctorLoadError display as input is gone */}
-
                 {loadingDoctorLoad ? (
                   <Box className="d-flex justify-content-center align-items-center my-5" sx={{ minHeight: 200 }}>
                     <CircularProgress size={50} />
                     <Typography variant="h6" className="ms-3 text-muted">Loading your schedule data...</Typography>
                   </Box>
                 ) : doctorLoadData ? (
-                  <Box sx={{ p: 3, borderRadius: '12px', mt: 4 }}> {/* Using Box instead of Paper for consistency with previous code */}
+                  <Box sx={{ p: 3, borderRadius: '12px', mt: 4 }}>
                     <Typography variant="h6" component="h3" className="mb-3 text-center" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
                       Your Load Breakdown
                     </Typography>
@@ -607,9 +642,8 @@ export default function DoctorHome() {
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="day" tickLine={false} axisLine={false} />
                         <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                        <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} content={<CustomTooltip />} /> {/* Use CustomTooltip */}
+                        <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} content={<CustomTooltip />} />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        {/* Grouped Bars (removed stackId) with LabelList for counts on top */}
                         <Bar dataKey="Confirmed" fill="#4CAF50" name="Confirmed">
                           <LabelList dataKey="Confirmed" position="top" />
                         </Bar>
