@@ -27,6 +27,9 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Import Recharts components
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
 export default function AdminHome() {
   const navigate = useNavigate();
   // Ensure all list states are initialized to empty arrays
@@ -54,6 +57,9 @@ export default function AdminHome() {
   const [ambulanceDriverName, setAmbulanceDriverName] = useState("");
   const [ambulanceRegistrationNumber, setAmbulanceRegistrationNumber] = useState("");
   const [ambulanceStatus, setAmbulanceStatus] = useState("");
+
+  // NEW STATE FOR DOCTOR APPOINTMENT STATS
+  const [doctorStats, setDoctorStats] = useState([]);
 
   // Helper function to safely get array data from API response
   // Added more robust checks and logging
@@ -152,6 +158,23 @@ export default function AdminHome() {
     };
     fetchSpecializations();
   }, []);
+
+  // NEW useEffect to fetch doctor appointment statistics
+  useEffect(() => {
+    const fetchDoctorStats = async () => {
+      try {
+        // Using your provided backend endpoint
+        const response = await axios.get("http://localhost:8080/appointments/doctors-availability-summary");
+        console.log("[Doctor Stats Fetch] Raw API response data:", response.data);
+        setDoctorStats(getArrayFromResponse(response.data, "doctorStats"));
+      } catch (error) {
+        toast.error("Error fetching doctor statistics");
+        console.error("Error fetching doctor statistics:", error.response ? error.response.data : error.message);
+        setDoctorStats([]);
+      }
+    };
+    fetchDoctorStats();
+  }, []); // Empty dependency array to fetch once on component mount
 
   // Removed: useEffect for fetching ambulances, as per "not fetching data of ambulances"
 
@@ -441,6 +464,12 @@ export default function AdminHome() {
     }
   };
 
+  // Removed getDoctorFullName helper as doctorName is now directly available in DTO
+  // const getDoctorFullName = (doctorId) => {
+  //   const doctor = doctors.find(doc => doc.id === doctorId);
+  //   return doctor ? `${doctor.firstName} ${doctor.lastName}` : `Doctor ID: ${doctorId}`;
+  // };
+
   return (
     <Container sx={{ mt: 4 }}>
       <Paper sx={{ p: 2, mb: 2 }}>
@@ -456,7 +485,7 @@ export default function AdminHome() {
           </Stack>
         </Grid>
         <Box sx={{ mt: 2 }}>
-          <Tabs value={activeTab} onChange={(e, newVal) => setActiveTab(newVal)}>
+          <Tabs value={activeTab} onChange={(e, newVal) => setActiveTab(newVal)} variant="scrollable" scrollButtons="auto">
             <Tab label="Doctors" />
             <Tab label="Patients" />
             <Tab label="Appointments" />
@@ -465,6 +494,8 @@ export default function AdminHome() {
             <Tab label="Specializations" />
             <Tab label="Add Specialization" />
             <Tab label="Add Ambulance" />
+            {/* NEW TAB FOR DOCTOR STATS */}
+            <Tab label="Doctor Statistics" />
           </Tabs>
           <Box sx={{ mt: 2 }}>
             {loading && <CircularProgress />}
@@ -598,6 +629,79 @@ export default function AdminHome() {
                 <Button type="submit" variant="contained" color="primary">
                   Add Ambulance
                 </Button>
+              </Box>
+            )}
+            {/* NEW TAB CONTENT FOR DOCTOR STATS */}
+            {activeTab === 8 && ( // This will be the 9th tab (index 8)
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2 }}>Doctor Appointment Statistics</Typography>
+                {doctorStats.length > 0 ? (
+                  <>
+                    {/* Stacked Bar Chart for all doctors */}
+                    <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>Appointments by Status per Doctor</Typography>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <BarChart
+                        data={doctorStats.map(stat => ({
+                          name: stat.doctorName, // Use doctorName directly from DTO
+                          Confirmed: stat.confirmed,
+                          Pending: stat.pending,
+                          Cancelled: stat.cancelled,
+                        }))}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={60} /> {/* Adjust for long names */}
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="Confirmed" stackId="a" fill="#82ca9d" />
+                        <Bar dataKey="Pending" stackId="a" fill="#ffc658" />
+                        <Bar dataKey="Cancelled" stackId="a" fill="#ff7300" />
+                      </BarChart>
+                    </ResponsiveContainer>
+
+                    {/* Individual Pie Charts for each doctor */}
+                    <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Detailed View per Doctor</Typography>
+                    <Grid container spacing={3}>
+                      {doctorStats.map((stat) => (
+                        <Grid item xs={12} sm={6} md={4} key={stat.doctorId}> {/* Responsive grid */}
+                          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <Typography variant="subtitle1" align="center" sx={{ mb: 1 }}>{stat.doctorName}</Typography> {/* Use doctorName */}
+                            <ResponsiveContainer width="100%" height={200}>
+                              <PieChart>
+                                <Pie
+                                  data={[
+                                    { name: 'Confirmed', value: stat.confirmed },
+                                    { name: 'Pending', value: stat.pending },
+                                    { name: 'Cancelled', value: stat.cancelled },
+                                  ]}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  outerRadius={80}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                >
+                                  <Cell key={`cell-confirmed-${stat.doctorId}`} fill="#82ca9d" />
+                                  <Cell key={`cell-pending-${stat.doctorId}`} fill="#ffc658" />
+                                  <Cell key={`cell-cancelled-${stat.doctorId}`} fill="#ff7300" />
+                                </Pie>
+                                <Tooltip />
+                                <Legend />
+                              </PieChart>
+                            </ResponsiveContainer>
+                            <Typography variant="body2" align="center" sx={{ mt: 1 }}>
+                                Total Appointments: {stat.totalAppointmentsReceived}
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </>
+                ) : (
+                  <Typography>No doctor appointment statistics available.</Typography>
+                )}
               </Box>
             )}
           </Box>
