@@ -633,96 +633,66 @@ export default function AdminHome() {
             )}
             {/* NEW TAB CONTENT FOR DOCTOR STATS */}
             {activeTab === 8 && ( // This will be the 9th tab (index 8)
-              <Box sx={{ p: 3 }}> {/* Added padding to the main Box for better spacing */}
-                <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                  Doctor Appointment Statistics Overview
-                </Typography>
-
-                {loading ? ( // Use the existing loading state
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
-                    <CircularProgress />
-                    <Typography variant="subtitle1" sx={{ ml: 2 }}>Loading statistics...</Typography>
-                  </Box>
-                ) : doctorStats.length > 0 ? (
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2 }}>Doctor Appointment Statistics</Typography>
+                {doctorStats.length > 0 ? (
                   <>
                     {/* Stacked Bar Chart for all doctors */}
-                    <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 2 }}> {/* Added Paper with elevation */}
-                      <Typography variant="h6" component="h3" gutterBottom sx={{ mb: 2 }}>
-                        Appointments Status Across All Doctors
-                      </Typography>
-                      <ResponsiveContainer width="100%" height={350}>
-                        <BarChart
-                          data={doctorStats.map(stat => ({
-                            name: stat.doctorName, // Use doctorName directly from DTO
-                            Confirmed: stat.confirmed,
-                            Pending: stat.pending,
-                            Cancelled: stat.cancelled,
-                          }))}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={60} /> {/* Adjust for long names */}
-                          <YAxis allowDecimals={false} /> {/* Ensure Y-axis shows whole numbers */}
-                          <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} /> {/* Add a subtle cursor */}
-                          <Legend wrapperStyle={{ paddingTop: '10px' }} /> {/* Add padding to legend */}
-                          <Bar dataKey="Confirmed" stackId="a" fill="#4CAF50" name="Confirmed" /> {/* Green */}
-                          <Bar dataKey="Pending" stackId="a" fill="#FFC107" name="Pending" />     {/* Amber */}
-                          <Bar dataKey="Cancelled" stackId="a" fill="#F44336" name="Cancelled" />   {/* Red */}
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </Paper>
+                    <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>Appointments by Status per Doctor</Typography>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <BarChart
+                        data={doctorStats.map(stat => ({
+                          name: stat.doctorName, // Use doctorName directly from DTO
+                          Confirmed: stat.confirmed,
+                          Pending: stat.pending,
+                          Cancelled: stat.cancelled,
+                        }))}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={60} /> {/* Adjust for long names */}
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="Confirmed" stackId="a" fill="#82ca9d" />
+                        <Bar dataKey="Pending" stackId="a" fill="#ffc658" />
+                        <Bar dataKey="Cancelled" stackId="a" fill="#ff7300" />
+                      </BarChart>
+                    </ResponsiveContainer>
 
                     {/* Individual Pie Charts for each doctor */}
-                    <Typography variant="h6" component="h3" gutterBottom sx={{ mb: 2 }}>
-                      Detailed Appointment Breakdown per Doctor
-                    </Typography>
+                    <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Detailed View per Doctor</Typography>
                     <Grid container spacing={3}>
                       {doctorStats.map((stat) => (
-                        <Grid item xs={12} sm={6} md={6} key={stat.doctorId}> {/* Responsive grid */}
-<Paper elevation={2} sx={{
-                            p: 2,
-                            height: '100%',
-                            // Removed width: '150%' - Paper should naturally fill the Grid item's width
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            borderRadius: 2,
-                            overflow: 'hidden' // Ensure no overflow from content
-                          }}>                            <Typography variant="subtitle1" align="center" sx={{ mb: 1, fontWeight: 'medium' }}>
-                              {stat.doctorName}
-                            </Typography>
+                        <Grid item xs={12} sm={6} md={4} key={stat.doctorId}> {/* Responsive grid */}
+                          <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <Typography variant="subtitle1" align="center" sx={{ mb: 1 }}>{stat.doctorName}</Typography> {/* Use doctorName */}
                             <ResponsiveContainer width="100%" height={200}>
-  <PieChart>
-    <Pie
-      data={[
-        { name: 'Confirmed', value: stat.confirmed },
-        { name: 'Pending', value: stat.pending },
-        { name: 'Cancelled', value: stat.cancelled },
-      ].filter(entry => entry.value > 0)} // Filter out zero values for cleaner pies
-      cx="50%"
-      cy="50%"
-      labelLine={false}
-      outerRadius={70} // Decreased outerRadius to 70 (from 80) for more space
-      dataKey="value"
-      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-      style={{ fontSize: '12px' }} // Apply font size directly to the Pie labels
-    >
-      <Cell key={`cell-confirmed-${stat.doctorId}`} fill="#4CAF50" />
-      <Cell key={`cell-pending-${stat.doctorId}`} fill="#FFC107" />
-      <Cell key={`cell-cancelled-${stat.doctorId}`} fill="#F44336" />
-    </Pie>
-    <Tooltip formatter={(value) => `${value} appointments`} /> {/* Custom tooltip formatter */}
-    <Legend
-      layout="vertical"
-      align="right"
-      verticalAlign="middle"
-      wrapperStyle={{ fontSize: '12px' }} // Made legend font size smaller
-    />
-  </PieChart>
-</ResponsiveContainer>
-
-                            <Typography variant="body2" align="center" sx={{ mt: 1, color: 'text.secondary' }}>
-                                Total Appointments: <Typography component="span" variant="body1" sx={{ fontWeight: 'bold' }}>{stat.totalAppointmentsReceived}</Typography>
+                              <PieChart>
+                                <Pie
+                                  data={[
+                                    { name: 'Confirmed', value: stat.confirmed },
+                                    { name: 'Pending', value: stat.pending },
+                                    { name: 'Cancelled', value: stat.cancelled },
+                                  ]}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  outerRadius={80}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                >
+                                  <Cell key={`cell-confirmed-${stat.doctorId}`} fill="#82ca9d" />
+                                  <Cell key={`cell-pending-${stat.doctorId}`} fill="#ffc658" />
+                                  <Cell key={`cell-cancelled-${stat.doctorId}`} fill="#ff7300" />
+                                </Pie>
+                                <Tooltip />
+                                <Legend />
+                              </PieChart>
+                            </ResponsiveContainer>
+                            <Typography variant="body2" align="center" sx={{ mt: 1 }}>
+                                Total Appointments: {stat.totalAppointmentsReceived}
                             </Typography>
                           </Paper>
                         </Grid>
@@ -730,17 +700,10 @@ export default function AdminHome() {
                     </Grid>
                   </>
                 ) : (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, flexDirection: 'column' }}>
-                    <Typography variant="h6" color="text.secondary" gutterBottom>
-                      No doctor appointment statistics available.
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Please ensure doctors have appointments or check backend connectivity.
-                    </Typography>
-                  </Box>
+                  <Typography>No doctor appointment statistics available.</Typography>
                 )}
               </Box>
-            )} {/* CLOSING PARENTHESIS FOR activeTab === 8 CONDITIONAL RENDERING */}
+            )}
           </Box>
         </Box>
       </Paper>
