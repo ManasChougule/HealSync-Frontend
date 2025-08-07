@@ -73,6 +73,7 @@ export default function Login() {
       const response = await loginService.login(formData);
       if (response.status === 200 && response.data) {
         const userData = response.data;
+        console.log("user is ", userData);
         localStorage.setItem("user", JSON.stringify(userData));
         if (formData.role === "PATIENT") {
           localStorage.setItem("patientId", userData.id);
