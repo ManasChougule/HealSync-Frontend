@@ -34,7 +34,7 @@ import edit from "../assets/edit.png";
 import timetable from "../assets/timetable.png";
 
 // Recharts Imports for Bar Chart
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts'; // Added LabelList
 
 export default function DoctorHome() {
   const [doctorName, setDoctorName] = useState("");
@@ -180,31 +180,29 @@ export default function DoctorHome() {
   }, [doctorId, hospitalOptions, specializationOptions]);
 
   // MODIFIED useEffect to fetch doctor load data - now uses doctorId directly
+  // This useEffect will now also re-run if 'appointments' state changes,
+  // ensuring the chart updates when an appointment status is changed.
   useEffect(() => {
     const fetchDoctorLoadData = async () => {
       if (!doctorId) { // Only proceed if doctorId is available
         setDoctorLoadData(null);
-        // doctorLoadError is removed
         return;
       }
 
       setLoadingDoctorLoad(true);
-      // doctorLoadError is removed
       try {
         const response = await axios.get(`http://localhost:8080/appointments/doctor-load/${doctorId}`); // Use doctorId directly
         setDoctorLoadData(response.data);
       } catch (error) {
         console.error("Error fetching doctor load data:", error);
         setDoctorLoadData(null);
-        // Set a generic error message if needed, but no specific input error
-        // setDoctorLoadError("Failed to fetch your load data.");
       } finally {
         setLoadingDoctorLoad(false);
       }
     };
 
     fetchDoctorLoadData(); // Call the function
-  }, [doctorId]); // Dependency on doctorId only
+  }, [doctorId, appointments]); // Dependency on doctorId AND appointments
 
   // Appointment statuses with react-icons
   const statusOptions = [
@@ -244,6 +242,7 @@ export default function DoctorHome() {
         `http://localhost:8080/appointments/update-status/${appointmentId}?status=${newStatus}`
       )
       .then((response) => {
+        // Update the local appointments state
         setAppointments(
           appointments.map((appointment) =>
             appointment.id === appointmentId
@@ -252,6 +251,8 @@ export default function DoctorHome() {
           )
         );
         alert("Appointment status updated successfully!");
+        // The useEffect for doctorLoadData now depends on 'appointments',
+        // so it will automatically re-fetch the chart data.
       })
       .catch((error) => {
         console.error(
@@ -309,7 +310,7 @@ export default function DoctorHome() {
     }
   }
 
-  // Function to prepare data for the Bar Chart (for stacked bars)
+  // Function to prepare data for the Bar Chart (for grouped bars)
   const prepareChartData = (loadData) => {
     if (!loadData || !loadData.load) {
       return [];
@@ -320,8 +321,30 @@ export default function DoctorHome() {
       Confirmed: loadData.load[day].confirmed,
       Pending: loadData.load[day].pending,
       Cancelled: loadData.load[day].cancelled,
+      // Calculate total for tooltip or custom label if needed
+      Total: loadData.load[day].confirmed + loadData.load[day].pending + loadData.load[day].cancelled,
     }));
   };
+
+  // Custom Tooltip for the chart to show total count
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload; // Access the data object for the current day
+      return (
+        <div style={{ backgroundColor: '#fff', padding: '10px', border: '1px solid #ccc' }}>
+          <p className="label">{`${label}`}</p>
+          {payload.map((entry, index) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+          <p style={{ color: '#333', fontWeight: 'bold' }}>{`Total: ${data.Total}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
 
   return (
     <Container className="my-4">
@@ -584,12 +607,18 @@ export default function DoctorHome() {
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="day" tickLine={false} axisLine={false} />
                         <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                        <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
+                        <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} content={<CustomTooltip />} /> {/* Use CustomTooltip */}
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        {/* Stacked Bars */}
-                        <Bar dataKey="Confirmed" stackId="a" fill="#4CAF50" name="Confirmed" />
-                        <Bar dataKey="Pending" stackId="a" fill="#FFC107" name="Pending" />
-                        <Bar dataKey="Cancelled" stackId="a" fill="#F44336" name="Cancelled" />
+                        {/* Grouped Bars (removed stackId) with LabelList for counts on top */}
+                        <Bar dataKey="Confirmed" fill="#4CAF50" name="Confirmed">
+                          <LabelList dataKey="Confirmed" position="top" />
+                        </Bar>
+                        <Bar dataKey="Pending" fill="#FFC107" name="Pending">
+                          <LabelList dataKey="Pending" position="top" />
+                        </Bar>
+                        <Bar dataKey="Cancelled" fill="#F44336" name="Cancelled">
+                          <LabelList dataKey="Cancelled" position="top" />
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </Box>

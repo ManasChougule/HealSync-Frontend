@@ -168,24 +168,7 @@ const PatientHome = () => {
     setSelectedTime("");
     setAppointmentSuccess(false);
     setAppointmentMessage("");
-
-    const daysOptions = doctor.workingDays
-      ? doctor.workingDays.split(",").map((day) => ({
-          key: day,
-          text: day,
-          value: day,
-        }))
-      : [];
-    const hoursOptions = doctor.workingHours
-      ? doctor.workingHours.split(",").map((hour) => ({
-          key: hour,
-          text: hour,
-          value: hour,
-        }))
-      : [];
-
-    setWorkingDaysOptions(daysOptions);
-    setWorkingHoursOptions(hoursOptions);
+    // Clear message when a new doctor is selected
   };
 
   const handleDaySelect = (day) => {
@@ -193,12 +176,14 @@ const PatientHome = () => {
     setSelectedTime("");
     setAppointmentSuccess(false);
     setAppointmentMessage("");
+    // Clear message when day changes
   };
 
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
     setAppointmentSuccess(false);
     setAppointmentMessage("");
+    // Clear message when time changes
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
@@ -236,7 +221,7 @@ const PatientHome = () => {
 
   const handleAppointmentRequest = async () => {
     setAppointmentSuccess(false);
-    setAppointmentMessage("");
+    setAppointmentMessage(""); // Clear previous messages immediately
 
     if (!userData || !userData.patientId) {
       setAppointmentMessage("User information (Patient ID) could not be loaded. Please log in again.");
@@ -276,11 +261,16 @@ const PatientHome = () => {
         if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
           setAppointmentSuccess(true);
           setAppointmentMessage("Your appointment has been saved successfully!");
-          fetchAppointments(userData.patientId);
-          setSelectedDoctor(null);
-          setSpecialization("");
-          setSelectedDay("");
-          setSelectedTime("");
+          fetchAppointments(userData.patientId); // Refresh appointments list
+
+          // Introduce a delay before clearing the form fields
+          setTimeout(() => {
+            setSelectedDoctor(null);
+            setSpecialization("");
+            setSelectedDay("");
+            setSelectedTime("");
+            setAppointmentMessage(""); // Clear the success message after it's been seen
+          }, 3000); // 3-second delay
         }
       } else {
           setAppointmentSuccess(false);
@@ -590,6 +580,7 @@ const PatientHome = () => {
                         </Form.Group>
 
                         <Button
+                          type="button"
                           variant="primary"
                           className="w-100 mt-3"
                           onClick={handleAppointmentRequest}
