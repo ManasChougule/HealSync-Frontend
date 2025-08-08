@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -22,6 +22,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
+import TextField from '@mui/material/TextField';
 
 // Icons (using react-icons)
 import { FaArrowLeft, FaSignOutAlt, FaEdit, FaTrashAlt } from 'react-icons/fa';
@@ -41,7 +42,7 @@ const PatientHome = () => {
   const [selectedDay, setSelectedDay] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [appointmentSuccess, setAppointmentSuccess] = useState(false);
-  const [appointmentMessage, setAppointmentMessage] = useState("");
+  const [appointmentMessage, setAppointmentMessage] = useState(""); // This state is for appointment booking messages
   const [appointments, setAppointments] = useState([]);
   const [specializationOptions, setSpecializationOptions] = useState([]);
   const [workingDaysOptions, setWorkingDaysOptions] = useState([]);
@@ -52,19 +53,27 @@ const PatientHome = () => {
   const [editAppointment, setEditAppointment] = useState(null);
   const [editDay, setEditDay] = useState("");
   const [editTime, setEditTime] = useState("");
+  const [editAppointmentMessage, setEditAppointmentMessage] = useState(""); // New state for edit modal messages
+  const [editAppointmentSuccess, setEditAppointmentSuccess] = useState(false); // New state for edit modal success
 
-  const [ambulanceNumber, setAmbulanceNumber] = useState("");
-  const [ambulanceLocation, setAmbulanceLocation] = useState("");
-  const [ambulanceNotes, setAmbulanceNotes] = useState("");
+  const [filteredTime, setFilteredTime] = useState([]);
+
+  // Ambulance booking states
+  const [patientName, setPatientName] = useState("");
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [dropLocation, setDropLocation] = useState("");
+  const [ambulanceType, setAmbulanceType] = useState("");
   const [ambulanceBookingSuccess, setAmbulanceBookingSuccess] = useState(false);
-  const [ambulanceMessage, setAmbulanceMessage] = useState("");
+  const [ambulanceMessage, setAmbulanceMessage] = useState(""); // This state is for ambulance booking messages
 
   // Validation states for ambulance booking
-  const [ambulanceLocationError, setAmbulanceLocationError] = useState("");
-  const [ambulanceNumberError, setAmbulanceNumberError] = useState("");
+  const [patientNameError, setPatientNameError] = useState("");
+  const [pickupLocationError, setPickupLocationError] = useState("");
+  const [dropLocationError, setDropLocationError] = useState("");
+  const [ambulanceTypeError, setAmbulanceTypeError] = useState("");
 
   // Regex for validation
-  const vehicleNumberRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/;
+  const nameRegex = /^[a-zA-Z\s.'-]{2,}$/; // Allows letters, spaces, and common punctuation for names
   const addressRegex = /^[a-zA-Z0-9\s,.'-]{3,}$/; // Allows alphanumeric, spaces, and common punctuation for addresses
 
   const navigate = useNavigate();
@@ -77,6 +86,7 @@ const PatientHome = () => {
         `${userDataFromStorage.firstName} ${userDataFromStorage.lastName}`
       );
     } else {
+      // If no user data, navigate to login/home page
       navigate("/");
     }
   }, [navigate]);
@@ -90,7 +100,8 @@ const PatientHome = () => {
       );
       setDoctors(response.data);
     } catch (error) {
-      alert("Failed to fetch doctors. Please try again later.");
+      setAppointmentSuccess(false); // Assume failure if doctors can't be fetched
+      setAppointmentMessage("Failed to fetch doctors. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -100,6 +111,8 @@ const PatientHome = () => {
     setEditAppointment(appointment);
     setEditDay(appointment.day);
     setEditTime(appointment.time);
+    setEditAppointmentMessage(""); // Clear previous message
+    setEditAppointmentSuccess(false); // Reset success state
 
     const doctor = appointment.doctor;
     const daysOptions = doctor.workingDays
@@ -137,7 +150,8 @@ const PatientHome = () => {
         }));
         setSpecializationOptions(options);
       } catch (error) {
-        alert("Failed to fetch specializations. Please try again later.");
+        // This error is for fetching specializations, not a specific appointment
+        console.error("Failed to fetch specializations:", error);
       }
     };
 
@@ -155,7 +169,8 @@ const PatientHome = () => {
       );
       setAppointments(response.data);
     } catch (error) {
-      alert("Failed to fetch your appointments. Please try again.");
+      // This error is for fetching the list of appointments, not a specific booking
+      console.error("Failed to fetch your appointments:", error);
     }
   };
 
@@ -163,6 +178,11 @@ const PatientHome = () => {
     const value = e.target.value;
     setSpecialization(value);
     fetchDoctors(value);
+    setSelectedDoctor(null);
+    setWorkingDaysOptions([]);
+    setFilteredTime([]);
+    setAppointmentMessage(""); // Clear appointment message on specialization change
+    setAppointmentSuccess(false); // Reset success state
   };
 
   const handleDoctorSelect = async (doctor) => {
@@ -170,7 +190,7 @@ const PatientHome = () => {
     setSelectedDay("");
     setSelectedTime("");
     setAppointmentSuccess(false);
-    setAppointmentMessage("");
+    setAppointmentMessage(""); // Clear appointment message on doctor select
 
     const daysOptions = doctor.workingDays
       ? doctor.workingDays.split(",").map((day) => ({
@@ -195,13 +215,13 @@ const PatientHome = () => {
     setSelectedDay(day);
     setSelectedTime("");
     setAppointmentSuccess(false);
-    setAppointmentMessage("");
+    setAppointmentMessage(""); // Clear appointment message on day select
   };
 
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
     setAppointmentSuccess(false);
-    setAppointmentMessage("");
+    setAppointmentMessage(""); // Clear appointment message on time select
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
@@ -214,13 +234,17 @@ const PatientHome = () => {
         `http://localhost:8080/registration/appointments/delete/${appointmentId}`
       );
       if (response.status === 200) {
-        alert("Your appointment has been successfully deleted.");
         setAppointments(
           appointments.filter((appointment) => appointment.id !== appointmentId)
         );
+        setAppointmentSuccess(true);
+        setAppointmentMessage("Your appointment has been successfully deleted.");
+        setTimeout(() => setAppointmentMessage(""), 5000);
       }
     } catch (error) {
-      alert("An error occurred while deleting the appointment.");
+      setAppointmentSuccess(false);
+      setAppointmentMessage("An error occurred while deleting the appointment.");
+      setTimeout(() => setAppointmentMessage(""), 5000);
     }
   };
 
@@ -239,7 +263,7 @@ const PatientHome = () => {
 
   const handleAppointmentRequest = async () => {
     setAppointmentSuccess(false);
-    setAppointmentMessage("");
+    setAppointmentMessage(""); // Clear previous message before new attempt
 
     if (!userData || !userData.patientId) {
       setAppointmentMessage("User information (Patient ID) could not be loaded. Please log in again.");
@@ -280,12 +304,18 @@ const PatientHome = () => {
 
         if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
           setAppointmentSuccess(true);
-          setAppointmentMessage("Your appointment has been saved successfully!");
-          fetchAppointments(userData.patientId);
-          setSelectedDoctor(null);
-          setSpecialization("");
-          setSelectedDay("");
-          setSelectedTime("");
+          // Updated success message for consistency
+          setAppointmentMessage("Your appointment has been booked successfully!");
+          fetchAppointments(userData.patientId); // Refresh appointments for "Your Appointments" tab
+
+          // Clear selections after a short delay to allow the success message to be seen
+          setTimeout(() => {
+            setSelectedDoctor(null); // This will hide the booking card
+            setSpecialization(""); // This will clear the specialization dropdown
+            setSelectedDay("");
+            setSelectedTime("");
+            setAppointmentMessage(""); // Clear the message after a delay
+          }, 3000); // Message visible for 3 seconds
         }
       } else {
           setAppointmentSuccess(false);
@@ -312,32 +342,53 @@ const PatientHome = () => {
   };
 
   const handleUpdateAppointment = async () => {
+    setEditAppointmentMessage(""); // Clear previous message
+    setEditAppointmentSuccess(false); // Reset success state
+
     if (!editAppointment || !editDay || !editTime) {
-      alert("Please select a day and time for the update.");
+      setEditAppointmentMessage("Please select a day and time for the update.");
+      setEditAppointmentSuccess(false);
       return;
     }
 
     try {
+      const availabilityCheckData = {
+        doctorId: editAppointment.doctor.id,
+        day: editDay,
+        time: editTime,
+      };
       // TODO: Add JWT authentication check here
-      const availabilityResponse = await axios.get(
-        `http://localhost:8080/appointments/check-availability?doctorId=${editAppointment.doctor.id}&day=${editDay}&time=${editTime}`
+      // Changed from axios.get to axios.post and sending data in body
+      const availabilityResponse = await axios.post(
+        "http://localhost:8080/appointments/check-availability",
+        availabilityCheckData
       );
 
-      if (availabilityResponse.data === true) {
+      // The backend response for availability check in handleAppointmentRequest
+      // includes "Doctor is available". We should expect similar for consistency.
+      // If the backend for update availability check returns a boolean true/false,
+      // then `availabilityResponse.data === true` is correct.
+      // If it returns a string like "Doctor is available", then adjust the condition.
+      if (availabilityResponse.data === true || (typeof availabilityResponse.data === 'string' && availabilityResponse.data.includes("Doctor is available"))) {
         // TODO: Add JWT token to headers
         const response = await axios.put(
           `http://localhost:8080/appointments/update/${editAppointment.id}?day=${editDay}&time=${editTime}`
         );
 
         if (response.status === 200) {
-          alert("Appointment successfully updated.");
-          setEditModalOpen(false);
+          setEditAppointmentSuccess(true);
+          setEditAppointmentMessage("Appointment successfully updated.");
           fetchAppointments(userData.patientId);
+          // Close modal after a short delay to allow message to be seen
+          setTimeout(() => setEditModalOpen(false), 1500);
         }
       } else {
-          alert("The doctor is not available at this time for the update.");
+          setEditAppointmentSuccess(false);
+          // Use the message from the availability response if available, otherwise a default
+          setEditAppointmentMessage(availabilityResponse.data || "The doctor is not available at this time for the update.");
       }
     } catch (error) {
+      setEditAppointmentSuccess(false);
       let errorMessage = "An unknown error occurred during update. Please try again.";
       if (error.response) {
         if (typeof error.response.data === 'string') {
@@ -347,15 +398,11 @@ const PatientHome = () => {
         } else if (error.response.data) {
             errorMessage = JSON.stringify(error.response.data);
         }
-        if (error.response.status === 400) {
-          alert(`Update failed: ${errorMessage || "The doctor is not available at this time for the update."}`);
-        } else {
-          alert(`An unexpected error occurred during update (Status: ${error.response.status}): ${errorMessage}`);
-        }
+        setEditAppointmentMessage(`Update failed: ${errorMessage}`);
       } else if (error.request) {
-        alert("No response from server during update. Please check your network connection.");
+        setEditAppointmentMessage("No response from server during update. Please check your network connection.");
       } else {
-        alert(`An error occurred during update: ${error.message}.`);
+        setEditAppointmentMessage(`An error occurred during update: ${error.message}.`);
       }
     }
   };
@@ -372,23 +419,45 @@ const PatientHome = () => {
   const validateAmbulanceBooking = () => {
     let isValid = true;
 
-    // Validate Current Location
-    if (!ambulanceLocation.trim()) {
-      setAmbulanceLocationError("Current location is required.");
+    // Validate Patient Name
+    if (!patientName.trim()) {
+      setPatientNameError("Patient name is required.");
       isValid = false;
-    } else if (!addressRegex.test(ambulanceLocation)) {
-      setAmbulanceLocationError("Enter a valid address.");
+    } else if (!nameRegex.test(patientName.trim())) { // Apply regex to trimmed value
+      setPatientNameError("Enter a valid patient name (letters, spaces, and common punctuation only).");
       isValid = false;
     } else {
-      setAmbulanceLocationError("");
+      setPatientNameError("");
     }
 
-    // Validate Ambulance Number (if provided)
-    if (ambulanceNumber.trim() && !vehicleNumberRegex.test(ambulanceNumber)) {
-      setAmbulanceNumberError("Enter a valid vehicle number (e.g., MH12AB1234).");
+    // Validate Pickup Location
+    if (!pickupLocation.trim()) {
+      setPickupLocationError("Pickup location is required.");
+      isValid = false;
+    } else if (!addressRegex.test(pickupLocation.trim())) { // Apply regex to trimmed value
+      setPickupLocationError("Enter a valid pickup address.");
       isValid = false;
     } else {
-      setAmbulanceNumberError("");
+      setPickupLocationError("");
+    }
+
+    // Validate Drop Location
+    if (!dropLocation.trim()) {
+      setDropLocationError("Drop location is required.");
+      isValid = false;
+    } else if (!addressRegex.test(dropLocation.trim())) { // Apply regex to trimmed value
+      setDropLocationError("Enter a valid drop address.");
+      isValid = false;
+    } else {
+      setDropLocationError("");
+    }
+
+    // Validate Ambulance Type
+    if (!ambulanceType) {
+      setAmbulanceTypeError("Ambulance type is required.");
+      isValid = false;
+    } else {
+      setAmbulanceTypeError("");
     }
 
     return isValid;
@@ -396,7 +465,7 @@ const PatientHome = () => {
 
   const handleAmbulanceBooking = async () => {
     setAmbulanceBookingSuccess(false);
-    setAmbulanceMessage("");
+    setAmbulanceMessage(""); // Clear previous message before new attempt
 
     if (!userData || !userData.patientId) {
       setAmbulanceMessage("User information (Patient ID) could not be loaded. Please log in again.");
@@ -404,33 +473,49 @@ const PatientHome = () => {
     }
 
     if (!validateAmbulanceBooking()) {
-      return;
+      return; // Stop if validation fails
     }
 
-    const patientId = userData.patientId;
-
     try {
-      const ambulanceData = {
-        patientId: patientId,
-        ambulanceNumber: ambulanceNumber.trim() || null, // Send null if empty
-        location: ambulanceLocation.trim(),
-        notes: ambulanceNotes.trim(),
-      };
-
+      // Step 1: Get available ambulances of selected type
       // TODO: Add JWT token to headers
-      const response = await axios.post(
-        "http://localhost:8080/api/ambulance-bookings/book",
-        ambulanceData
+      const availableRes = await axios.get(
+        `http://localhost:8080/api/ambulances/available?type=${ambulanceType}`
       );
 
-      if (response.status === 200 || response.status === 201) {
+      const availableAmbulances = availableRes.data;
+      if (!availableAmbulances.length) {
+        setAmbulanceMessage("No ambulances available for selected type.");
+        return;
+      }
+
+      // Step 2: Pick the first available ambulance for booking
+      const selectedAmbulance = availableAmbulances[0];
+
+      const bookingData = {
+        patientName: patientName.trim(),
+        pickupLocation: pickupLocation.trim(),
+        dropLocation: dropLocation.trim(),
+        ambulanceId: selectedAmbulance.id,
+        patientId: userData.patientId,
+      };
+
+      // Step 3: Send booking request
+      // TODO: Add JWT token to headers
+      const bookingRes = await axios.post("http://localhost:8080/api/booking", bookingData);
+
+      if (bookingRes.status === 200 || bookingRes.status === 201) {
         setAmbulanceBookingSuccess(true);
         setAmbulanceMessage("Your ambulance request has been sent successfully!");
-        setAmbulanceNumber("");
-        setAmbulanceLocation("");
-        setAmbulanceNotes("");
-        setAmbulanceLocationError(""); // Clear errors on success
-        setAmbulanceNumberError("");
+        // Clear form fields and validation errors on success
+        setPatientName("");
+        setPickupLocation("");
+        setDropLocation("");
+        setAmbulanceType("");
+        setPatientNameError("");
+        setPickupLocationError("");
+        setDropLocationError("");
+        setAmbulanceTypeError("");
       }
     } catch (error) {
       setAmbulanceBookingSuccess(false);
@@ -466,6 +551,30 @@ const PatientHome = () => {
     }
   }, [userData]);
 
+  const fetchFilteredTimes = useCallback(async () => {
+    if (selectedDoctor && selectedDoctor.id && selectedDay) {
+      try {
+        // TODO: Add JWT token to headers
+        const response = await axios.post("http://localhost:8080/appointments/get-filtered-time", {
+          doctorId: selectedDoctor.id,
+          day: selectedDay,
+        });
+        setFilteredTime(response.data);
+      } catch (error) {
+        console.error("Error fetching filtered times:", error);
+        setFilteredTime([]);
+      }
+    } else {
+      setFilteredTime([]);
+    }
+  }, [selectedDoctor, selectedDay]);
+
+  useEffect(() => {
+    fetchFilteredTimes();
+    setSelectedTime("");
+    setAppointmentSuccess(false);
+  }, [selectedDay, selectedDoctor, fetchFilteredTimes]);
+
   return (
     <Container className="my-4">
       {/* Header Row */}
@@ -475,7 +584,7 @@ const PatientHome = () => {
         </Col>
         <Col xs={4} className="text-center">
           <Typography variant="h4" component="h1" className="mb-0">
-            Welcome, {userName}!
+            Welcome, <span style={{ fontFamily: 'Georgia, serif', fontWeight: 'bold', color: '#007bff' }}>{userName}</span>!
           </Typography>
         </Col>
         <Col xs={4} className="text-end">
@@ -576,9 +685,10 @@ const PatientHome = () => {
                         {selectedDoctor.user.lastName}
                       </Typography>
 
+                      {/* Appointment Booking Message Display */}
                       {appointmentMessage && (
                         <Alert variant={appointmentSuccess ? "success" : "warning"}>
-                          {appointmentSuccess ? "Appointment Request Sent" : "Appointment Failed"}: {appointmentMessage}
+                          {appointmentMessage}
                         </Alert>
                       )}
 
@@ -605,18 +715,18 @@ const PatientHome = () => {
                         <Form.Group className="mb-3">
                           <Form.Label>Select an hour</Form.Label>
                           <div className="d-flex flex-wrap gap-2">
-                            {workingHoursOptions.length > 0 ? (
-                              workingHoursOptions.map((option) => (
+                            {filteredTime.length > 0 ? (
+                              filteredTime.map((option) => (
                                 <Button
-                                  key={option.value}
-                                  variant={selectedTime === option.value ? "primary" : "light"}
-                                  onClick={() => handleTimeSelect(option.value)}
+                                  key={option}
+                                  variant={selectedTime === option ? "primary" : "light"}
+                                  onClick={() => handleTimeSelect(option)}
                                 >
-                                  {option.text}
+                                  {option}
                                 </Button>
                               ))
                             ) : (
-                              <Alert variant="info" className="w-100">No working hours available for this doctor.</Alert>
+                              <Alert variant="info" className="w-100">Select a day to get available time slots.</Alert>
                             )}
                           </div>
                         </Form.Group>
@@ -644,6 +754,13 @@ const PatientHome = () => {
                 <Typography variant="h5" component="h2" className="text-center mb-4">
                   Your Appointments <img src={timetable} alt="timetable logo" style={{ width: "40px", height: "35px", marginLeft: "10px" }} />
                 </Typography>
+
+                {/* Message for delete/update operations */}
+                {appointmentMessage && ( // Re-using appointmentMessage for delete/update feedback
+                  <Alert variant={appointmentSuccess ? "success" : "warning"}>
+                    {appointmentMessage}
+                  </Alert>
+                )}
 
                 {appointments.length === 0 ? (
                   <Alert variant="info">No appointments found</Alert>
@@ -702,62 +819,71 @@ const PatientHome = () => {
                   Book Ambulance <img src={ambulanceIcon} alt="ambulance logo" style={{ width: "40px", height: "35px", marginLeft: "10px" }} />
                 </Typography>
 
-                <Form>
+                <Box component="form" onSubmit={(e) => { e.preventDefault(); handleAmbulanceBooking(); }}>
+                  {/* Ambulance Booking Message Display */}
                   {ambulanceMessage && (
                     <Alert variant={ambulanceBookingSuccess ? "success" : "warning"}>
-                      {ambulanceBookingSuccess ? "Ambulance Request Sent" : "Ambulance Request Failed"}: {ambulanceMessage}
+                      {ambulanceMessage}
                     </Alert>
                   )}
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Ambulance Number (Optional)</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g., MH12AB1234"
-                      value={ambulanceNumber}
-                      onChange={(e) => { setAmbulanceNumber(e.target.value); setAmbulanceNumberError(""); }}
-                      isInvalid={!!ambulanceNumberError}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {ambulanceNumberError}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Current Location <span className="text-danger">*</span></Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g., 123 Main St, City"
-                      value={ambulanceLocation}
-                      onChange={(e) => { setAmbulanceLocation(e.target.value); setAmbulanceBookingSuccess(false); setAmbulanceMessage(""); setAmbulanceLocationError(""); }}
+                  <TextField
+                    label="Patient Name"
+                    value={patientName}
+                    onChange={(e) => { setPatientName(e.target.value); setPatientNameError(""); }}
+                    fullWidth
+                    margin="normal"
+                    required
+                    error={!!patientNameError}
+                    helperText={patientNameError}
+                  />
+                  <TextField
+                    label="Pickup Location"
+                    value={pickupLocation}
+                    onChange={(e) => { setPickupLocation(e.target.value); setPickupLocationError(""); }}
+                    fullWidth
+                    margin="normal"
+                    required
+                    error={!!pickupLocationError}
+                    helperText={pickupLocationError}
+                  />
+                  <TextField
+                    label="Drop Location"
+                    value={dropLocation}
+                    onChange={(e) => { setDropLocation(e.target.value); setDropLocationError(""); }}
+                    fullWidth
+                    margin="normal"
+                    required
+                    error={!!dropLocationError}
+                    helperText={dropLocationError}
+                  />
+                  <FormControl fullWidth margin="normal" error={!!ambulanceTypeError}>
+                    <InputLabel id="ambulance-type-select-label">Ambulance Type</InputLabel>
+                    <Select
+                      labelId="ambulance-type-select-label"
+                      id="ambulance-type-select"
+                      value={ambulanceType}
+                      label="Ambulance Type"
+                      onChange={(e) => { setAmbulanceType(e.target.value); setAmbulanceTypeError(""); }}
                       required
-                      isInvalid={!!ambulanceLocationError}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {ambulanceLocationError}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Additional Notes (Optional)</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      placeholder="e.g., Patient has difficulty breathing."
-                      value={ambulanceNotes}
-                      onChange={(e) => setAmbulanceNotes(e.target.value)}
-                    />
-                  </Form.Group>
+                    >
+                      <MenuItem value=""><em>Select Type</em></MenuItem>
+                      <MenuItem value="BASIC">Basic</MenuItem>
+                      <MenuItem value="ADVANCED">Advanced</MenuItem>
+                      <MenuItem value="NEONATAL">Neonatal</MenuItem>
+                      <MenuItem value="ICU">ICU</MenuItem>
+                    </Select>
+                    {ambulanceTypeError && <Typography color="error" variant="caption">{ambulanceTypeError}</Typography>}
+                  </FormControl>
 
                   <Button
+                    type="submit"
                     variant="primary"
                     className="w-100 mt-3"
-                    onClick={handleAmbulanceBooking}
-                    disabled={!ambulanceLocation.trim()} // Disable if location is empty
                   >
                     Request Ambulance
                   </Button>
-                </Form>
+                </Box>
               </Card.Body>
             </Card>
           </Tab.Pane>
@@ -770,6 +896,12 @@ const PatientHome = () => {
           <Modal.Title>Edit Appointment</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* Message for edit modal operations */}
+          {editAppointmentMessage && (
+            <Alert variant={editAppointmentSuccess ? "success" : "warning"}>
+              {editAppointmentMessage}
+            </Alert>
+          )}
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Select Day</Form.Label>

@@ -8,7 +8,7 @@ const Footer = () => {
     <footer
       className="bg-success text-center text-light mt-auto"
       style={{
-        height: '32px',                      // Fixed minimal height
+        height: '32px', // Fixed minimal height
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -19,16 +19,6 @@ const Footer = () => {
           <Col xs="auto" className="px-2">
             <span style={{ fontSize: '0.85rem' }}>
               &copy; {currentYear} HealSync. All rights reserved.
-            </span>
-          </Col>
-          <Col xs="auto" className="px-2">
-            <span style={{ fontSize: '0.85rem' }} role="button" className="text-white-50">
-              Privacy Policy
-            </span>
-          </Col>
-          <Col xs="auto" className="px-2">
-            <span style={{ fontSize: '0.85rem' }} role="button" className="text-white-50">
-              Terms of Service
             </span>
           </Col>
         </Row>

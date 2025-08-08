@@ -53,8 +53,8 @@ export default function AdminHome() {
   const [openHospitalDialog, setOpenHospitalDialog] = useState(false);
   const [openSpecializationDialog, setOpenSpecializationDialog] = useState(false);
 
-  // States for Ambulance management
-  const [ambulances, setAmbulances] = useState([]); // New state to store ambulances
+  // States for Ambulance management (only add ambulance related states remain)
+  // const [ambulances, setAmbulances] = useState([]); // Removed: No longer fetching/displaying list
   const [ambulanceContactNumber, setAmbulanceContactNumber] = useState("");
   const [ambulanceDriverName, setAmbulanceDriverName] = useState("");
   const [ambulanceRegistrationNumber, setAmbulanceRegistrationNumber] = useState("");
@@ -174,22 +174,21 @@ export default function AdminHome() {
     fetchDoctorStats();
   }, []);
 
-  // Fetch Ambulances
-  useEffect(() => {
-    // TODO: Add JWT authentication check here
-    const fetchAmbulances = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get("http://localhost:8080/api/ambulances/all");
-        setAmbulances(getArrayFromResponse(response.data));
-      } catch (error) {
-        toast.error("Error fetching ambulances");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAmbulances();
-  }, []);
+  // Removed: Fetch Ambulances useEffect
+  // useEffect(() => {
+  //   const fetchAmbulances = async () => {
+  //     setLoading(true);
+  //     try {
+  //       const response = await axios.get("http://localhost:8080/api/ambulances/all");
+  //       setAmbulances(getArrayFromResponse(response.data));
+  //     } catch (error) {
+  //       toast.error("Error fetching ambulances");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchAmbulances();
+  // }, []);
 
   // User Management Handlers
   const handleEdit = (user) => {
@@ -538,7 +537,7 @@ export default function AdminHome() {
     }
   };
 
-  // Ambulance Management Handlers
+  // Ambulance Management Handlers (only Add Ambulance remains)
   const validateAmbulanceFields = () => {
     let isValid = true;
     if (!ambulanceContactNumber || !phoneNumberRegex.test(ambulanceContactNumber)) {
@@ -595,9 +594,7 @@ export default function AdminHome() {
       // TODO: Add JWT token to headers
       const response = await axios.post("http://localhost:8080/api/ambulances/add", ambulanceData);
       toast.success("Ambulance added successfully!");
-      if (response.data) {
-        setAmbulances([...ambulances, response.data]); // Add the new ambulance to the list
-      }
+      // Removed: setAmbulances([...ambulances, response.data]); // No longer maintaining a list in AdminHome
       setAmbulanceContactNumber("");
       setAmbulanceDriverName("");
       setAmbulanceRegistrationNumber("");
@@ -616,42 +613,42 @@ export default function AdminHome() {
     }
   };
 
-  const handleDeleteAmbulance = async (ambulanceId) => {
-    if (window.confirm("Are you sure you want to delete this ambulance?")) {
-      setLoading(true);
-      try {
-        // TODO: Add JWT token to headers
-        await axios.delete(`http://localhost:8080/api/ambulances/delete/${ambulanceId}`);
-        toast.success("Ambulance deleted successfully!");
-        setAmbulances(ambulances.filter((ambulance) => ambulance.id !== ambulanceId));
-      } catch (error) {
-        toast.error("Error deleting ambulance");
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+  // Removed: handleDeleteAmbulance function
+  // const handleDeleteAmbulance = async (ambulanceId) => {
+  //   if (window.confirm("Are you sure you want to delete this ambulance?")) {
+  //     setLoading(true);
+  //     try {
+  //       await axios.delete(`http://localhost:8080/api/ambulances/delete/${ambulanceId}`);
+  //       toast.success("Ambulance deleted successfully!");
+  //       setAmbulances(ambulances.filter((ambulance) => ambulance.id !== ambulanceId));
+  //     } catch (error) {
+  //       toast.error("Error deleting ambulance");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }
+  // };
 
-  const renderAmbulances = () => {
-    return (
-      <List>
-        {Array.isArray(ambulances) && ambulances.map((ambulance) => (
-          <ListItem key={ambulance.id} sx={styles.listItem}>
-            <ListItemText
-              primary={`Driver: ${ambulance.driverName || 'N/A'} | Vehicle: ${ambulance.vehicleNumber || 'N/A'}`}
-              secondary={`Contact: ${ambulance.contactNumber || 'N/A'} | Type: ${ambulance.type || 'N/A'} | Status: ${ambulance.available ? 'Available' : 'Booked'}`}
-            />
-            <Stack direction="row" spacing={1}>
-              {/* Add edit functionality for ambulance if needed */}
-              <Button variant="contained" color="error" onClick={() => handleDeleteAmbulance(ambulance.id)}>
-                <Delete />
-              </Button>
-            </Stack>
-          </ListItem>
-        ))}
-      </List>
-    );
-  };
+  // Removed: renderAmbulances function
+  // const renderAmbulances = () => {
+  //   return (
+  //     <List>
+  //       {Array.isArray(ambulances) && ambulances.map((ambulance) => (
+  //         <ListItem key={ambulance.id} sx={styles.listItem}>
+  //           <ListItemText
+  //             primary={`Driver: ${ambulance.driverName || 'N/A'} | Vehicle: ${ambulance.vehicleNumber || 'N/A'}`}
+  //             secondary={`Contact: ${ambulance.contactNumber || 'N/A'} | Type: ${ambulance.type || 'N/A'} | Status: ${ambulance.available ? 'Available' : 'Booked'}`}
+  //           />
+  //           <Stack direction="row" spacing={1}>
+  //             <Button variant="contained" color="error" onClick={() => handleDeleteAmbulance(ambulance.id)}>
+  //               <Delete />
+  //             </Button>
+  //           </Stack>
+  //         </ListItem>
+  //       ))}
+  //     </List>
+  //   );
+  // };
 
 
   return (
@@ -677,7 +674,7 @@ export default function AdminHome() {
             <Tab label="Add Hospital" />
             <Tab label="Specializations" />
             <Tab label="Add Specialization" />
-            <Tab label="Ambulances" /> {/* New tab for viewing ambulances */}
+            {/* Removed: <Tab label="Ambulances" /> */}
             <Tab label="Add Ambulance" />
             <Tab label="Doctor Statistics" />
           </Tabs>
@@ -780,8 +777,8 @@ export default function AdminHome() {
                 </Button>
               </Box>
             )}
-            {activeTab === 7 && renderAmbulances()} {/* Render ambulances list */}
-            {activeTab === 8 && (
+            {/* Removed: activeTab === 7 && renderAmbulances() */}
+            {activeTab === 7 && ( // This tab index might need adjustment based on the final order
               <Box component="form" onSubmit={handleAddAmbulance}>
                 <TextField
                   label="Contact Number"
@@ -848,7 +845,7 @@ export default function AdminHome() {
                 </Button>
               </Box>
             )}
-            {activeTab === 9 && (
+            {activeTab === 8 && ( // This tab index might need adjustment based on the final order
               <Box sx={{ p: 3 }}>
                 <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                   Doctor Appointment Statistics Overview
