@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect,useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import 'semantic-ui-css/semantic.min.css'; // Keep this line for Semantic UI styles
 import 'bootstrap/dist/css/bootstrap.min.css'; // Ensure Bootstrap styles are imported
@@ -18,16 +18,48 @@ import AmbulanceBooking from './pages/AmbulanceBooking'; // This component is im
 import AddAmbulance from './pages/AddAmbulance';
 import BookAmbulance from './pages/BookAmbulance';
 
+// import ChecktokenExpirationCheck from './pages/TokenExpired';
+import { checkTokenValidity } from './pages/checkTokenValidity';
+import { jwtDecode } from "jwt-decode";
+
 function App() {
-  return (
+        const [loggedIn, setLoggedIn] = useState(() => {
+            // Initializing loggedIn by checking localStorage token validity on mount
+            const user = JSON.parse(localStorage.getItem("user"));
+            if (!user || !user.token) return false;
+            try {
+                const decoded = jwtDecode(user.token);
+                const now = Date.now() / 1000;
+                return decoded.exp && decoded.exp > now;
+            } catch {
+                return false;
+            }
+        });
+
+        useEffect(() => {
+            if (!loggedIn) return;
+
+            const logout = () => {
+            setLoggedIn(false);
+            window.location.href = "/";
+            };
+
+            checkTokenValidity(logout); 
+
+            const interval = setInterval(() => checkTokenValidity(logout), 10 * 1000);
+
+            return () => clearInterval(interval);
+        }, [loggedIn]);
+
+    return (
     <Router>
       {/* Flex container to push footer to the bottom */}
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header /> {/* Header will appear on all pages */}
+        <Header loggedIn={loggedIn} setLoggedIn={setLoggedIn} /> {/* Header will appear on all pages */}
 
         <main style={{ flexGrow: 1 }}> {/* Main content area will grow to fill space */}
           <Routes>
-            <Route path="/" element={<Login />} />
+            <Route path="/" element={<Login setLoggedIn={setLoggedIn}/>} />
             <Route path="/register" element={<Register />} />
             <Route path="/admin-home" element={<AdminHome />} />
             <Route path="/patient-home" element={<PatientHome />} />

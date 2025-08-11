@@ -1,0 +1,52 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem; /* mb: 4 means 1.5rem in Bootstrap, adjust if needed */
+}
+
+.logo {
+  width: 60px;
+  height: 60px;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.1);
+}
+
+.input {
+  margin-bottom: 0.5rem; 
+}
+
+.button {
+  margin-top: 1rem; 
+  background-color: #388e3c;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.button:hover {
+  background-color: #2e7d32;
+  transform: scale(1.05);
+}
+
+.linkButton {
+  color: #388e3c;
+  text-decoration: underline;
+  font-weight: bold;
+  padding: 0;
+  min-width: 0;
+}
+
+.signupContainer {
+  margin-top: 1rem; 
+  text-align: center;
+}
+
+
+.form > * {
+  margin-bottom: 0.75rem !important;
+}
+
+

@@ -13,9 +13,9 @@ import {
 import { styled } from "@mui/system";
 import { useNavigate } from "react-router-dom";
 import RegisterService from "../services/registerService";
-import axios from "axios";
+import api from '../services/api';
 import hospitalImage from "../assets/hospital.png";
-import { Container } from "react-bootstrap";  // Import Container from React-Bootstrap
+import { Container } from "react-bootstrap";  
 
 // Styled Box with responsive padding
 const StyledContainer = styled(Box)(({ theme }) => ({
@@ -24,7 +24,7 @@ const StyledContainer = styled(Box)(({ theme }) => ({
   padding: "40px",
   borderRadius: "15px",
   boxShadow: "0 20px 30px rgba(0,0,0,0.2)",
-  maxWidth: "600px",  // Increased width
+  maxWidth: "600px", 
   margin: "0 auto",
   animation: "fadeIn 1s ease-out",
   "@keyframes fadeIn": {
@@ -33,7 +33,7 @@ const StyledContainer = styled(Box)(({ theme }) => ({
   },
   [theme.breakpoints.down("sm")]: {
     padding: "20px",
-    maxWidth: "90%",  // Still responsive on small screens
+    maxWidth: "90%",  
   },
 }));
 
@@ -88,21 +88,21 @@ export default function Register() {
   const [specializationOptions, setSpecializationOptions] = useState([]);
   const [specialization, setSpecialization] = useState("");
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:8080/specializations/all")
-      .then((response) => {
+    useEffect(() => {
+    api.get("/specializations/all")
+        .then((response) => {
         const options = response.data.map((spec) => ({
-          key: spec.id,
-          text: spec.name,
-          value: spec.id,
+            key: spec.id,
+            text: spec.name,
+            value: spec.id,
         }));
         setSpecializationOptions(options);
-      })
-      .catch((error) => {
+        })
+        .catch((error) => {
         console.error("Error loading specializations:", error);
-      });
-  }, []);
+        });
+    }, []);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -146,7 +146,7 @@ export default function Register() {
   };
 
   return (
-    <Container className="mt-4 mb-4"> {/* Space above and below form */}
+    <Container className="mt-4 mb-4">
       <StyledContainer>
         <Typography
           variant="h4"
@@ -166,7 +166,7 @@ export default function Register() {
             alt="Hospital Logo"
             style={{ marginBottom: "10px", width: "60px", height: "60px" }}
           />
-          <span>Hospital Appointment System</span>
+          <span>HealSync: Unified Care</span>
         </Typography>
         <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%", marginTop: "20px", marginBottom: "20px" }}>
           <StyledTextField

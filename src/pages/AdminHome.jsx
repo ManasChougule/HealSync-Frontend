@@ -1,39 +1,15 @@
-import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Grid,
-  Typography,
-  Paper,
-  Button,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  Tabs,
-  Tab,
-  Box,
-  CircularProgress,
-  Chip,
-  Stack,
-} from "@mui/material";
-import { Delete, Edit, CheckCircle, Cancel, AccessTime, Help, Logout, ArrowBack } from "@mui/icons-material";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useEffect, useState } from "react";
+import { Container,Grid,Typography,Paper,Button,Avatar,List,ListItem,ListItemAvatar,ListItemText,Dialog,DialogTitle,DialogContent,TextField,Tabs,Tab,Box,CircularProgress,Chip,Stack} from "@mui/material";
+import { Delete, Edit, CheckCircle, Cancel, AccessTime, Help } from "@mui/icons-material";
+
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import api from "../services/api";
 
-// Import Recharts components
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function AdminHome() {
-  const navigate = useNavigate();
-  // Ensure all list states are initialized to empty arrays
-  const [users, setUsers] = useState([]);
+
   const [appointments, setAppointments] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [open, setOpen] = useState(false);
@@ -80,7 +56,7 @@ export default function AdminHome() {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("http://localhost:8080/registration/all?role=ADMIN");
+        const response = await api.get("/auth/all?role=ADMIN");
         console.log("[Users Fetch] Raw API response data:", response.data); // Debugging log
         const allUsers = getArrayFromResponse(response.data, "users");
 
@@ -88,19 +64,16 @@ export default function AdminHome() {
         if (Array.isArray(allUsers)) {
           setDoctors(allUsers.filter((user) => user.role === "DOCTOR"));
           setPatients(allUsers.filter((user) => user.role === "PATIENT"));
-          setUsers(allUsers); // Update the general users state too if needed elsewhere
         } else {
           console.error("[Users Fetch] getArrayFromResponse returned non-array for users.");
           setDoctors([]);
           setPatients([]);
-          setUsers([]);
         }
       } catch (error) {
         toast.error("Error fetching users");
         console.error("Error fetching users:", error.response ? error.response.data : error.message);
         setDoctors([]);
         setPatients([]);
-        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -113,7 +86,7 @@ export default function AdminHome() {
     const fetchAppointments = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("http://localhost:8080/registration/appointments?role=ADMIN");
+        const response = await api.get("/auth/appointments?role=ADMIN");
         console.log("[Appointments Fetch] Raw API response data:", response.data); // Debugging log
         setAppointments(getArrayFromResponse(response.data, "appointments"));
       } catch (error) {
@@ -131,7 +104,7 @@ export default function AdminHome() {
   useEffect(() => {
     const fetchHospitals = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/hospitals/all");
+        const response = await api.get("/hospitals/all");
         console.log("[Hospitals Fetch] Raw API response data:", response.data); // Debugging log
         setHospitals(getArrayFromResponse(response.data, "hospitals"));
       } catch (error) {
@@ -147,7 +120,7 @@ export default function AdminHome() {
   useEffect(() => {
     const fetchSpecializations = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/specializations/all");
+        const response = await api.get("/specializations/all");
         console.log("[Specializations Fetch] Raw API response data:", response.data); // Debugging log
         setSpecialization(getArrayFromResponse(response.data, "specializations"));
       } catch (error) {
@@ -164,7 +137,7 @@ export default function AdminHome() {
     const fetchDoctorStats = async () => {
       try {
         // Using your provided backend endpoint
-        const response = await axios.get("http://localhost:8080/appointments/doctors-availability-summary");
+        const response = await api.get("/appointments/doctors-availability-summary");
         console.log("[Doctor Stats Fetch] Raw API response data:", response.data);
         setDoctorStats(getArrayFromResponse(response.data, "doctorStats"));
       } catch (error) {
@@ -175,8 +148,6 @@ export default function AdminHome() {
     };
     fetchDoctorStats();
   }, []); // Empty dependency array to fetch once on component mount
-
-  // Removed: useEffect for fetching ambulances, as per "not fetching data of ambulances"
 
   const handleEdit = (user) => {
     setSelectedUser(user);
@@ -191,7 +162,8 @@ export default function AdminHome() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await axios.put(`http://localhost:8080/registration/update/${selectedUser.id}`, selectedUser);
+      await api.put(`/auth/update/${selectedUser.id}`, selectedUser);
+
       toast.success("User updated successfully!");
       // Re-fetch users to ensure lists are fully updated after an edit
       // Or, more efficiently, update the specific user in the state
@@ -218,7 +190,7 @@ export default function AdminHome() {
     if (window.confirm("Are you sure you want to delete this user?")) {
       setLoading(true);
       try {
-        await axios.delete(`http://localhost:8080/registration/delete/${userId}`);
+        await api.delete(`/auth/delete/${userId}`);
         toast.success("User deleted successfully!");
         setDoctors(doctors.filter((user) => user.id !== userId));
         setPatients(patients.filter((user) => user.id !== userId));
@@ -231,15 +203,6 @@ export default function AdminHome() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    toast.success("Logged out successfully!");
-    navigate("/");
-  };
-
-  const handleBack = () => {
-    navigate(-1);
-  };
 
   const getStatusIcon = (status) => {
     switch ((status || "").toLowerCase()) {
@@ -310,7 +273,7 @@ export default function AdminHome() {
     }
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:8080/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress });
+      const response = await api.post("/hospitals/add", { name: hospitalName, city: hospitalCity, address: hospitalAddress });
       toast.success("Hospital added successfully!");
       if (response.data) {
         setHospitals([...hospitals, response.data]);
@@ -334,7 +297,10 @@ export default function AdminHome() {
     }
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:8080/specializations/add", { name: specializationName });
+        const response = await api.post("/specializations/add", {
+            name: specializationName,
+        });
+
       toast.success("Specialization added successfully!");
       if (response.data) {
         setSpecialization([...specializations, response.data]);
@@ -358,7 +324,7 @@ export default function AdminHome() {
     if (window.confirm("Are you sure you want to delete this specialization?")) {
       setLoading(true);
       try {
-        await axios.delete(`http://localhost:8080/specializations/delete/${specializationId}`);
+        await api.delete(`/specializations/delete/${specializationId}`);
         toast.success("Specialization deleted successfully!");
         setSpecialization(specializations.filter((s) => s.id !== specializationId));
       } catch (error) {
@@ -382,7 +348,7 @@ export default function AdminHome() {
     if (window.confirm("Are you sure you want to delete this hospital?")) {
       setLoading(true);
       try {
-        await axios.delete(`http://localhost:8080/hospitals/delete/${hospitalId}`);
+        await api.delete(`/hospitals/delete/${hospitalId}`);
         toast.success("Hospital deleted successfully!");
         setHospitals(hospitals.filter((hospital) => hospital.id !== hospitalId));
       } catch (error) {
@@ -402,7 +368,7 @@ export default function AdminHome() {
     setLoading(true);
     try {
       const updatedHospital = { name: hospitalName, city: hospitalCity, address: hospitalAddress };
-      await axios.put(`http://localhost:8080/hospitals/update/${selectedHospital.id}`, updatedHospital);
+      await api.put(`/hospitals/update/${selectedHospital.id}`, updatedHospital);
       toast.success("Hospital updated successfully!");
       setHospitals(hospitals.map((h) => (h.id === selectedHospital.id ? { ...h, ...updatedHospital } : h)));
       setOpenHospitalDialog(false);
@@ -422,7 +388,7 @@ export default function AdminHome() {
     setLoading(true);
     try {
       const updatedSpecialization = { name: specializationName };
-      await axios.put(`http://localhost:8080/specializations/update/${selectedSpecialization.id}`, updatedSpecialization);
+      await api.put(`/specializations/update/${selectedSpecialization.id}`, updatedSpecialization);
       toast.success("Specialization updated successfully!");
       setSpecialization(specializations.map((s) => (s.id === selectedSpecialization.id ? { ...s, ...updatedSpecialization } : s)));
       setOpenSpecializationDialog(false);
@@ -450,7 +416,7 @@ export default function AdminHome() {
     };
     console.log("Sending ambulance data:", ambulanceData);
     try {
-      await axios.post("http://localhost:8080/ambulances/add", ambulanceData);
+      await api.post("/ambulances/add", ambulanceData);
       toast.success("Ambulance added successfully!");
       setAmbulanceContactNumber("");
       setAmbulanceDriverName("");
@@ -475,14 +441,6 @@ export default function AdminHome() {
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <Typography variant="h4">Admin Dashboard</Typography>
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" color="primary" onClick={handleBack} startIcon={<ArrowBack />}>
-              Back
-            </Button>
-            <Button variant="outlined" color="error" onClick={handleLogout} startIcon={<Logout />}>
-              Logout
-            </Button>
-          </Stack>
         </Grid>
         <Box sx={{ mt: 2 }}>
           <Tabs value={activeTab} onChange={(e, newVal) => setActiveTab(newVal)} variant="scrollable" scrollButtons="auto">

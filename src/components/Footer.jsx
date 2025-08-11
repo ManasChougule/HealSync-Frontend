@@ -21,16 +21,6 @@ const Footer = () => {
               &copy; {currentYear} HealSync. All rights reserved.
             </span>
           </Col>
-          <Col xs="auto" className="px-2">
-            <span style={{ fontSize: '0.85rem' }} role="button" className="text-white-50">
-              Privacy Policy
-            </span>
-          </Col>
-          <Col xs="auto" className="px-2">
-            <span style={{ fontSize: '0.85rem' }} role="button" className="text-white-50">
-              Terms of Service
-            </span>
-          </Col>
         </Row>
       </Container>
     </footer>

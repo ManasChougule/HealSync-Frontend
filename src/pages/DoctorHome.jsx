@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import  { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 // React-Bootstrap Imports
@@ -10,7 +10,6 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
-import Spinner from 'react-bootstrap/Spinner';
 import Nav from 'react-bootstrap/Nav';
 import Tab from 'react-bootstrap/Tab';
 
@@ -22,16 +21,16 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
-// Removed TextField import as it's no longer needed for doctorLoadIdInput
-// import TextField from '@mui/material/TextField';
 
 // Icons from react-icons
-import { FaStethoscope, FaEdit, FaCalendarAlt, FaArrowLeft, FaSignOutAlt, FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaChartBar } from 'react-icons/fa'; // Added FaChartBar
+import { FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaChartBar } from 'react-icons/fa'; // Added FaChartBar
 
 // Local Assets (assuming these are still used for images)
 import stethoscope from "../assets/stethoscope.png";
 import edit from "../assets/edit.png";
 import timetable from "../assets/timetable.png";
+
+import api from "../services/api";
 
 // Recharts Imports for Bar Chart
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts'; // Added LabelList
@@ -44,17 +43,16 @@ export default function DoctorHome() {
   const [doctorDetails, setDoctorDetails] = useState({
     hospital: "",
     specialization: "",
-    workingDays: [], // Changed to array for multi-select
-    workingHours: [], // Changed to array for multi-select
+    workingDays: [],
+    workingHours: [], 
   });
 
   const [hospitalOptions, setHospitalOptions] = useState([]);
   const [specializationOptions, setSpecializationOptions] = useState([]);
 
-  // NEW STATES FOR DOCTOR LOAD TAB - doctorLoadIdInput and doctorLoadError removed
+
   const [doctorLoadData, setDoctorLoadData] = useState(null); // Stores the fetched doctor load data
   const [loadingDoctorLoad, setLoadingDoctorLoad] = useState(false); // Loading state for doctor load data
-  // const [doctorLoadError, setDoctorLoadError] = useState(""); // Removed as input field is gone
 
   const navigate = useNavigate();
 
@@ -85,60 +83,70 @@ export default function DoctorHome() {
     { key: "19:00", text: "19:00", value: "19:00" },
   ];
 
-  useEffect(() => {
+    useEffect(() => {
+    const fetchDoctorId = async (userId) => {
+        try {
+        const response = await api.get(`/auth/doctorId-by-user/${userId}`);
+        console.log('doc id for userId', userId,'is',response.data);
+        setDoctorId(response.data); 
+        } catch (error) {
+            console.error("Failed to fetch doctor ID:", error);
+            navigate("/");
+        }
+    };
+
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) {
-      setDoctorName(`${user.firstName} ${user.lastName}`);
-      setDoctorId(user.doctorId);
+        setDoctorName(`${user.firstName} ${user.lastName}`);
+        fetchDoctorId(user.userId);
+    } else {
+        navigate("/");
     }
-  }, []);
+    }, [navigate]);
+
+
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/hospitals/all")
-      .then((response) => {
+    api
+    .get("/hospitals/all")  
+    .then((response) => {
         const options = response.data.map((hospital) => ({
-          key: hospital.id,
-          text: hospital.name,
-          value: hospital.name,
+        key: hospital.id,
+        text: hospital.name,
+        value: hospital.name,
         }));
         setHospitalOptions(options);
-      })
-      .catch((error) => {
+    })
+    .catch((error) => {
         console.error("An error occurred while loading hospitals:", error);
-        alert("An error occurred while loading hospitals.");
-      });
+    });
 
-    axios
-      .get("http://localhost:8080/specializations/all")
-      .then((response) => {
+    api
+    .get("/specializations/all")
+    .then((response) => {
         const options = response.data.map((specialization) => ({
-          key: specialization.id,
-          text: specialization.name,
-          value: specialization.name,
+        key: specialization.id,
+        text: specialization.name,
+        value: specialization.name,
         }));
         setSpecializationOptions(options);
-      })
-      .catch((error) => {
-        console.error(
-          "An error occurred while loading specializations:",
-          error
-        );
-        alert("An error occurred while loading specializations.");
-      });
+    })
+    .catch((error) => {
+        console.error("An error occurred while loading specializations:", error);
+    });
+
 
     if (doctorId) {
-      setLoading(true);
-      axios
-        .get(`http://localhost:8080/appointments/doctor/${doctorId}`)
+        setLoading(true);
+        api
+        .get(`/appointments/doctor/${doctorId}`)
         .then((response) => {
-          setAppointments(response.data);
-          setLoading(false);
+            setAppointments(response.data);
+            setLoading(false);
         })
         .catch((error) => {
-          console.error("An error occurred while loading appointments:", error);
-          alert("An error occurred while loading appointments.");
-          setLoading(false);
+            console.error("An error occurred while loading appointments:", error);
+            setLoading(false);
         });
     }
   }, [doctorId]);
@@ -149,32 +157,32 @@ export default function DoctorHome() {
       hospitalOptions.length > 0 &&
       specializationOptions.length > 0
     ) {
-      axios
-        .get(`http://localhost:8080/doctors/${doctorId}`)
-        .then((response) => {
-          const data = response.data;
-          const hospitalOption = hospitalOptions.find(
-            (option) => option.text === data.hospital
-          );
-          const specializationOption = specializationOptions.find(
-            (option) => option.text === data.specialization
-          );
 
-          setDoctorDetails({
+        api
+        .get(`/doctors/${doctorId}`)
+        .then((response) => {
+            const data = response.data;
+            const hospitalOption = hospitalOptions.find(
+            (option) => option.text === data.hospital
+            );
+            const specializationOption = specializationOptions.find(
+            (option) => option.text === data.specialization
+            );
+
+            setDoctorDetails({
             hospital: hospitalOption ? hospitalOption.value : "",
-            specialization: specializationOption
-              ? specializationOption.value
-              : "",
+            specialization: specializationOption ? specializationOption.value : "",
             workingDays: data.workingDays ? data.workingDays.split(",") : [],
             workingHours: data.workingHours ? data.workingHours.split(",") : [],
-          });
+            });
         })
         .catch((error) => {
-          console.error(
+            console.error(
             "An error occurred while loading doctor information:",
             error
-          );
+            );
         });
+
     }
   }, [doctorId, hospitalOptions, specializationOptions]);
 
@@ -183,14 +191,14 @@ export default function DoctorHome() {
   // ensuring the chart updates when an appointment status is changed.
   useEffect(() => {
     const fetchDoctorLoadData = async () => {
-      if (!doctorId) { // Only proceed if doctorId is available
+      if (!doctorId) {
         setDoctorLoadData(null);
         return;
       }
 
       setLoadingDoctorLoad(true);
       try {
-        const response = await axios.get(`http://localhost:8080/appointments/doctor-load/${doctorId}`); // Use doctorId directly
+        const response = await api.get(`/appointments/doctor-load/${doctorId}`);  // Use doctorId directly
         setDoctorLoadData(response.data);
       } catch (error) {
         console.error("Error fetching doctor load data:", error);
@@ -200,8 +208,8 @@ export default function DoctorHome() {
       }
     };
 
-    fetchDoctorLoadData(); // Call the function
-  }, [doctorId, appointments]); // Dependency on doctorId AND appointments
+    fetchDoctorLoadData(); 
+  }, [doctorId, appointments]); 
 
   // Appointment statuses with react-icons
   const statusOptions = [
@@ -236,30 +244,27 @@ export default function DoctorHome() {
 
   // Function to send status update to the backend
   const handleStatusChange = (appointmentId, newStatus) => {
-    axios
-      .put(
-        `http://localhost:8080/appointments/update-status/${appointmentId}?status=${newStatus}`
-      )
-      .then((response) => {
-        // Update the local appointments state
+    api
+    .put(
+        `/appointments/update-status/${appointmentId}?status=${newStatus}`
+    )
+    .then((response) => {
         setAppointments(
-          appointments.map((appointment) =>
+        appointments.map((appointment) =>
             appointment.id === appointmentId
-              ? { ...appointment, status: newStatus }
-              : appointment
-          )
+            ? { ...appointment, status: newStatus }
+            : appointment
+        )
         );
         alert("Appointment status updated successfully!");
-        // The useEffect for doctorLoadData now depends on 'appointments',
-        // so it will automatically re-fetch the chart data.
-      })
-      .catch((error) => {
+    })
+    .catch((error) => {
         console.error(
-          "An error occurred while updating the appointment status:",
-          error
+        "An error occurred while updating the appointment status:",
+        error
         );
-        alert("An error occurred while updating the appointment status.");
-      });
+    });
+
   };
 
   const handleEditSubmit = async (e) => {
@@ -273,26 +278,14 @@ export default function DoctorHome() {
     };
 
     try {
-      const response = await axios.put(`http://localhost:8080/doctors/update/${doctorId}`, updateData);
+      const response = await api.put(`/doctors/update/${doctorId}`, updateData);
       alert("Doctor information updated successfully!");
     } catch (error) {
       console.error(
         "An error occurred while updating doctor information:",
         error.response ? error.response.data : error.message
       );
-      alert("An error occurred while updating doctor information.");
     }
-  };
-
-  // Function to handle logout
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/");
-  };
-
-  // Function to handle back navigation
-  const handleBack = () => {
-    navigate(-1);
   };
 
   // Helper to get Bootstrap variant for status
@@ -328,7 +321,7 @@ export default function DoctorHome() {
   // Custom Tooltip for the chart to show total count
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload; // Access the data object for the current day
+      const data = payload[0].payload; 
       return (
         <div style={{ backgroundColor: '#fff', padding: '10px', border: '1px solid #ccc' }}>
           <p className="label">{`${label}`}</p>
@@ -356,14 +349,6 @@ export default function DoctorHome() {
           <Typography variant="h4" component="h1" className="mb-0">
             Welcome, {doctorName}!
           </Typography>
-        </Col>
-        <Col xs={4} className="text-end">
-          <Button variant="secondary" onClick={handleBack} className="me-2">
-            <FaArrowLeft className="me-1" /> Back
-          </Button>
-          <Button variant="danger" onClick={handleLogout}>
-            <FaSignOutAlt className="me-1" /> Logout
-          </Button>
         </Col>
       </Row>
 
@@ -404,8 +389,8 @@ export default function DoctorHome() {
                         <Card className="h-100 shadow-sm appointment-card">
                           <Card.Body>
                             <Card.Title className="fs-5">
-                              {appointment.doctor.user.firstName}{" "}
-                              {appointment.doctor.user.lastName}
+                              {appointment.patient.user.firstName}{" "}
+                              {appointment.patient.user.lastName}
                             </Card.Title>
                             <Card.Text>
                               Day: {appointment.day} | Time: {appointment.time}
@@ -553,8 +538,8 @@ export default function DoctorHome() {
                         MenuProps={{
                           PaperProps: {
                             style: {
-                              maxHeight: 200, // Max height for the popup
-                              width: 250,    // Max width for the popup
+                              maxHeight: 200, 
+                              width: 250,    
                             },
                           },
                         }}
@@ -585,9 +570,6 @@ export default function DoctorHome() {
                   My Schedule Load - Day Wise
                 </Typography>
 
-                {/* Removed the TextField for Doctor ID input */}
-                {/* Removed doctorLoadError display as input is gone */}
-
                 {loadingDoctorLoad ? (
                   <Box className="d-flex justify-content-center align-items-center my-5" sx={{ minHeight: 200 }}>
                     <CircularProgress size={50} />
@@ -608,7 +590,6 @@ export default function DoctorHome() {
                         <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
                         <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} content={<CustomTooltip />} /> {/* Use CustomTooltip */}
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        {/* Grouped Bars (removed stackId) with LabelList for counts on top */}
                         <Bar dataKey="Confirmed" fill="#4CAF50" name="Confirmed">
                           <LabelList dataKey="Confirmed" position="top" />
                         </Bar>

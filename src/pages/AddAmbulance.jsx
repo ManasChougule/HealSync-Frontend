@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import axios from 'axios';
 
 function AddAmbulance() {
@@ -11,7 +11,7 @@ function AddAmbulance() {
     const newAmbulance = {
       registrationNumber,
       driverName,
-      status: 'AVAILABLE' // Default status
+      status: 'AVAILABLE' 
     };
 
     try {

@@ -9,10 +9,9 @@ function AmbulanceBooking() {
   const [hospitals, setHospitals] = useState([]);
   const [message, setMessage] = useState('');
   
-  const patientId = 1; // hardcoded or from session
+  const patientId = 1; 
 
   useEffect(() => {
-    // Fetch available ambulances
     const fetchAmbulances = async () => {
       try {
         const res = await axios.get('http://localhost:8080/ambulance/available');
@@ -22,7 +21,6 @@ function AmbulanceBooking() {
       }
     };
 
-    // Fetch hospitals
     const fetchHospitals = async () => {
       try {
         const res = await axios.get('http://localhost:8080/hospitals');

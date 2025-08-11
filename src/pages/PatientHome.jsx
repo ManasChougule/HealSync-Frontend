@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+import api from '../services/api';
 // React-Bootstrap Imports
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -10,7 +9,6 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
-import Spinner from 'react-bootstrap/Spinner';
 import Modal from 'react-bootstrap/Modal';
 import Nav from 'react-bootstrap/Nav';
 import Tab from 'react-bootstrap/Tab';
@@ -21,24 +19,21 @@ import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box'; // For flexbox utilities
-import CircularProgress from '@mui/material/CircularProgress'; // For loading indicator
+import Box from '@mui/material/Box'; 
+import CircularProgress from '@mui/material/CircularProgress'; 
 
 // Icons (using react-icons for a mix, or you can use Material-UI Icons)
-import { FaStethoscope, FaCalendarAlt, FaAmbulance, FaArrowLeft, FaSignOutAlt, FaEdit, FaTrashAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaEdit, FaTrashAlt } from 'react-icons/fa';
 
 // Local Assets
 import HealSync from "../assets/HealSync.png";
-import health from "../assets/health.png"; // Assuming these are still used for images
+import health from "../assets/health.png"; 
 import timetable from "../assets/timetable.png";
 import ambulanceIcon from "../assets/ambulance.png";
 
-// You might need to adjust or remove this if all styling is handled by RB/MUI
-// import "../css/PatientHome.css";
-
 const PatientHome = () => {
   const [userName, setUserName] = useState("");
-  const [userData, setUserData] = useState(null);
+  const [patientId, setPatientId] = useState(null);
   const [specialization, setSpecialization] = useState("");
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -67,32 +62,39 @@ const PatientHome = () => {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const userDataFromStorage = JSON.parse(localStorage.getItem("user"));
-    if (userDataFromStorage) {
-      setUserData(userDataFromStorage);
-      setUserName(
-        `${userDataFromStorage.firstName} ${userDataFromStorage.lastName}`
-      );
-    } else {
-      navigate("/");
-    }
-  }, [navigate]);
+    useEffect(() => {
+    const fetchPatientId = async (userId) => {
+        try {
+        const response = await api.get(`/auth/patientId-by-user/${userId}`);
+        setPatientId(response.data);
+        } catch (error) {
+        console.error("Failed to fetch patient ID:", error);
+        }
+    };
 
-  const fetchDoctors = async (specializationName) => {
-    setLoading(true);
-    try {
-      const response = await axios.get(
-        `http://localhost:8080/doctors/doctors?specializationName=${specializationName}`
-      );
-      setDoctors(response.data);
-    } catch (error) {
-      console.error("Error occurred while fetching doctors:", error);
-      alert("Failed to fetch doctors. Please try again later.");
-    } finally {
-      setLoading(false);
+    const userData = JSON.parse(localStorage.getItem("user"));
+    if (userData) {
+        setUserName(`${userData.firstName} ${userData.lastName}`);
+        fetchPatientId(userData.userId);
+    } else {
+        navigate("/");
     }
-  };
+    }, [navigate]);
+
+
+    const fetchDoctors = async (specializationName) => {
+        setLoading(true);
+        try {
+            const response = await api.get(`/doctors/doctors`, {
+            params: { specializationName }
+            });
+            setDoctors(response.data);
+        } catch (error) {
+            console.error("Error occurred while fetching doctors:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
   const handleEditAppointment = (appointment) => {
     setEditAppointment(appointment);
@@ -124,9 +126,7 @@ const PatientHome = () => {
   useEffect(() => {
     const fetchSpecializations = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:8080/specializations/all"
-        );
+        const response = await api.get('/specializations/all');
         const options = response.data.map((specialization) => ({
           key: specialization.id,
           text: specialization.name,
@@ -135,7 +135,6 @@ const PatientHome = () => {
         setSpecializationOptions(options);
       } catch (error) {
         console.error("Error occurred while fetching specializations:", error);
-        alert("Failed to fetch specializations. Please try again later.");
       }
     };
 
@@ -148,18 +147,15 @@ const PatientHome = () => {
       return;
     }
     try {
-      const response = await axios.get(
-        `http://localhost:8080/appointments/patient/${patientId}`
-      );
-      setAppointments(response.data);
+        const response = await api.get(`/appointments/patient/${patientId}`);
+        setAppointments(response.data);
     } catch (error) {
-      console.error("An error occurred while fetching appointments:", error);
-      alert("Failed to fetch your appointments. Please try again.");
+        console.error("An error occurred while fetching appointments:", error);
     }
   };
 
-  const handleSpecializationChange = (e) => { // e is the event object
-    const value = e.target.value; // For MUI Select, value is directly on e.target.value
+  const handleSpecializationChange = (e) => { 
+    const value = e.target.value; 
     setSpecialization(value);
     fetchDoctors(value);
     setSelectedDoctor(null);
@@ -193,14 +189,12 @@ const PatientHome = () => {
     setSelectedTime("");
     setAppointmentSuccess(false);
     setAppointmentMessage("");
-    // Clear message when day changes
   };
 
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
     setAppointmentSuccess(false);
     setAppointmentMessage("");
-    // Clear message when time changes
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
@@ -208,9 +202,7 @@ const PatientHome = () => {
       return;
     }
     try {
-      const response = await axios.delete(
-        `http://localhost:8080/registration/appointments/delete/${appointmentId}`
-      );
+      const response = await api.delete(`/auth/appointments/delete/${appointmentId}`);
       if (response.status === 200) {
         alert("Your appointment has been successfully deleted.");
         setAppointments(
@@ -219,20 +211,19 @@ const PatientHome = () => {
       }
     } catch (error) {
       console.error("An error occurred while deleting the appointment:", error);
-      alert("An error occurred while deleting the appointment.");
     }
   };
 
   function getStatusColor(status) {
     switch ((status || "").toLowerCase()) {
       case "pending":
-        return "warning"; // Bootstrap variant
+        return "warning"; 
       case "confirmed":
-        return "success"; // Bootstrap variant
+        return "success"; 
       case "cancelled":
-        return "danger"; // Bootstrap variant
+        return "danger"; 
       default:
-        return "secondary"; // Bootstrap variant
+        return "secondary"; 
     }
   }
 
@@ -240,54 +231,53 @@ const PatientHome = () => {
     setAppointmentSuccess(false);
     setAppointmentMessage("");
 
-    if (!userData || !userData.patientId) {
+    if (!patientId) {
       setAppointmentMessage("User information (Patient ID) could not be loaded. Please log in again.");
       return;
     }
 
-    const patientId = userData.patientId;
     if (!selectedDay || !selectedTime || !selectedDoctor) {
       setAppointmentMessage("Please select a doctor, day, and time for your appointment.");
       return;
     }
 
     try {
-      const availabilityCheckData = {
-        doctorId: selectedDoctor.id,
-        day: selectedDay,
-        time: selectedTime,
-      };
-      const availabilityResponse = await axios.post(
-        "http://localhost:8080/appointments/check-availability",
-        availabilityCheckData
-      );
-
-      if (availabilityResponse.data && availabilityResponse.data.includes("Doctor is available")) {
-        const appointmentData = {
-          doctorId: selectedDoctor.id,
-          patientId: patientId,
-          day: selectedDay,
-          time: selectedTime,
+        const availabilityCheckData = {
+            doctorId: selectedDoctor.id,
+            day: selectedDay,
+            time: selectedTime,
         };
-
-        const appointmentResponse = await axios.post(
-          "http://localhost:8080/appointments/create",
-          appointmentData
+        const availabilityResponse = await api.post(
+            "/appointments/check-availability",
+            availabilityCheckData
         );
 
-        if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
-          setAppointmentSuccess(true);
-          setAppointmentMessage("Your appointment has been saved successfully!");
-          fetchAppointments(userData.patientId);
-          setSelectedDoctor(null);
-          setSpecialization("");
-          setSelectedDay("");
-          setSelectedTime("");
+        if (availabilityResponse.data && availabilityResponse.data.includes("Doctor is available")) {
+            const appointmentData = {
+            doctorId: selectedDoctor.id,
+            patientId: patientId,
+            day: selectedDay,
+            time: selectedTime,
+            };
+            console.log("appointmentData",appointmentData)
+            const appointmentResponse = await api.post(
+                "/appointments/create",
+                appointmentData
+            );
+
+            if (appointmentResponse.status === 200 || appointmentResponse.status === 201) {
+                setAppointmentSuccess(true);
+                setAppointmentMessage("Your appointment has been saved successfully!");
+                fetchAppointments(patientId);
+                setSelectedDoctor(null);
+                setSpecialization("");
+                setSelectedDay("");
+                setSelectedTime("");
+            }
+        } else {
+            setAppointmentSuccess(false);
+            setAppointmentMessage(availabilityResponse.data || "Doctor is not available at this time.");
         }
-      } else {
-          setAppointmentSuccess(false);
-          setAppointmentMessage(availabilityResponse.data || "Doctor is not available at this time.");
-      }
     } catch (error) {
       console.error("Error during appointment request:", error);
       setAppointmentSuccess(false);
@@ -316,19 +306,22 @@ const PatientHome = () => {
     }
 
     try {
-      const availabilityResponse = await axios.get(
-        `http://localhost:8080/appointments/check-availability?doctorId=${editAppointment.doctor.id}&day=${editDay}&time=${editTime}`
-      );
+        const availabilityResponse = await api.post('/appointments/check-availability', {
+            doctorId: editAppointment.doctor.id,
+            day: editDay,
+            time: editTime,
+        });
 
-      if (availabilityResponse.data === true) {
-        const response = await axios.put(
-          `http://localhost:8080/appointments/update/${editAppointment.id}?day=${editDay}&time=${editTime}`
+
+    if (availabilityResponse.data) {
+        const response = await api.put(
+            `/appointments/update/${editAppointment.id}?day=${editDay}&time=${editTime}`
         );
 
         if (response.status === 200) {
-          alert("Appointment successfully updated.");
-          setEditModalOpen(false);
-          fetchAppointments(userData.patientId);
+            alert("Appointment successfully updated.");
+            setEditModalOpen(false);
+            fetchAppointments(patientId);
         }
       } else {
           alert("The doctor is not available at this time for the update.");
@@ -357,50 +350,41 @@ const PatientHome = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/");
-  };
-
-  const handleBack = () => {
-    navigate(-1);
-  };
-
   const handleAmbulanceBooking = async () => {
     setAmbulanceBookingSuccess(false);
     setAmbulanceMessage("");
 
-    if (!userData || !userData.patientId) {
+    if (!patientId) {
       setAmbulanceMessage("User information (Patient ID) could not be loaded. Please log in again.");
       return;
     }
 
-    const patientId = userData.patientId;
     if (!ambulanceLocation) {
       setAmbulanceMessage("Please provide your current location to book an ambulance.");
       return;
     }
 
     try {
-      const ambulanceData = {
-        patientId: patientId,
-        ambulanceNumber: ambulanceNumber,
-        location: ambulanceLocation,
-        notes: ambulanceNotes,
-      };
+        const ambulanceData = {
+            patientId: patientId,
+            ambulanceNumber: ambulanceNumber,
+            location: ambulanceLocation,
+            notes: ambulanceNotes,
+        };
 
-      const response = await axios.post(
-        "http://localhost:8080/api/ambulance-bookings/book",
-        ambulanceData
-      );
+        const response = await api.post(
+            "/api/ambulance-bookings/book",
+            ambulanceData
+        );
 
-      if (response.status === 200 || response.status === 201) {
-        setAmbulanceBookingSuccess(true);
-        setAmbulanceMessage("Your ambulance request has been sent successfully!");
-        setAmbulanceNumber("");
-        setAmbulanceLocation("");
-        setAmbulanceNotes("");
-      }
+
+        if (response.status === 200 || response.status === 201) {
+            setAmbulanceBookingSuccess(true);
+            setAmbulanceMessage("Your ambulance request has been sent successfully!");
+            setAmbulanceNumber("");
+            setAmbulanceLocation("");
+            setAmbulanceNotes("");
+        }
     } catch (error) {
       console.error("Error during ambulance booking:", error);
       setAmbulanceBookingSuccess(false);
@@ -431,24 +415,25 @@ const PatientHome = () => {
   }, [specialization]);
 
   useEffect(() => {
-    if (userData && userData.patientId) {
-      fetchAppointments(userData.patientId);
+    if (patientId) {
+      fetchAppointments(patientId);
     }
-  }, [userData]);
+  }, [patientId]);
 
 
-    const fetchFilteredTimes = async () => {
-    if (selectedDoctor && !selectedDoctor.id) return;
-    try {
-      const response = await axios.post("http://localhost:8080/appointments/get-filtered-time", {
-        doctorId: selectedDoctor.id,
-        day: selectedDay,
-      });
-      setFilteredTime(response.data);
-    } catch (error) {
-      console.error("Error fetching filtered times:", error);
-    }
-  };
+   const fetchFilteredTimes = async () => {
+        if (selectedDoctor && !selectedDoctor.id) return;
+        try {
+            const response = await api.post("/appointments/get-filtered-time", {
+                doctorId: selectedDoctor.id,
+                day: selectedDay,
+            });
+
+            setFilteredTime(response.data);
+        } catch (error) {
+            console.error("Error fetching filtered times:", error);
+        }
+    };
 
   useEffect(()=>{
     if(selectedDoctor && selectedDoctor.id && selectedDay){
@@ -469,14 +454,6 @@ const PatientHome = () => {
           <Typography variant="h4" component="h1" className="mb-0">
             Welcome, {userName}!
           </Typography>
-        </Col>
-        <Col xs={4} className="text-end">
-          <Button variant="secondary" onClick={handleBack} className="me-2">
-            <FaArrowLeft className="me-1" /> Back
-          </Button>
-          <Button variant="danger" onClick={handleLogout}>
-            <FaSignOutAlt className="me-1" /> Logout
-          </Button>
         </Col>
       </Row>
 
@@ -504,12 +481,12 @@ const PatientHome = () => {
                 </Typography>
 
                 <FormControl fullWidth margin="normal">
-                  <InputLabel id="specialization-select-label">Select Clinic</InputLabel>
+                  <InputLabel id="specialization-select-label">Select Specialization</InputLabel>
                   <Select
                     labelId="specialization-select-label"
                     id="specialization-select"
                     value={specialization}
-                    label="Select Clinic"
+                    label="Select Specialization"
                     onChange={handleSpecializationChange}
                   >
                     {specializationOptions.map((option) => (
@@ -528,7 +505,11 @@ const PatientHome = () => {
                 ) : (
                   <Row xs={1} md={2} lg={3} className="g-4 mt-3">
                     {doctors.length === 0 ? (
-                      <Col><Alert variant="info">No doctor found for this specialization.</Alert></Col>
+                        <Col>
+                            <Alert variant="info">
+                            {specialization === "" ? "Select specialization" : "No doctor found for this specialization."}
+                            </Alert>
+                        </Col>
                     ) : (
                       doctors.map((doctor) => (
                         <Col key={doctor.id}>
